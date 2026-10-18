@@ -289,7 +289,7 @@ const PLAN_STEPS=[
 
 // ================= STATE =================
 const KEY="frogpond.v2";
-let state=null, docRef=null, syncMode="local", saveTimer=null, saving=false, saveAgain=false, lastWritten="", ai=null;
+let state=null, syncMode="local", ai=null;
 let ui={tab:"today",list:"day",open:null,panel:null,goalForm:false,talk:0};
 try{const t=localStorage.getItem("frogpond.ui"); if(t){const o=JSON.parse(t); ui.tab=o.tab||"today"; ui.list=o.list||"day";}}catch(e){}
 
@@ -318,11 +318,11 @@ function examples(){
 }
 function normalize(s){
   s=s&&typeof s==="object"?s:{};
-  const tasks=Array.isArray(s.tasks)?s.tasks.map(t=>({id:t.id||uidGen(),text:String(t.text||""),list:t.list||"master",letter:t.letter||"",rank:t.rank||(t.frog?1:0),done:!!t.done,doneAt:t.doneAt||null,created:t.created||Date.now(),ex:!!t.ex,slices:Array.isArray(t.slices)?t.slices:[],need:t.need||"",due:t.due||""})):[];
-  const goals=Array.isArray(s.goals)?s.goals.map((g,i)=>({id:g.id||uidGen(),text:String(g.text||""),deadline:g.deadline||"",major:g.major!=null?!!g.major:i===0,ex:!!g.ex,blocker:g.blocker||"",steps:Array.isArray(g.steps)?g.steps:[]})):[];
-  const o={v:2,created:s.created||Date.now(),tasks,goals,kra:Array.isArray(s.kra)?s.kra:[],frogLog:s.frogLog&&typeof s.frogLog==="object"?s.frogLog:{},
+  const tasks=Array.isArray(s.tasks)?s.tasks.map(t=>({id:t.id||uidGen(),text:String(t.text||""),list:t.list||"master",letter:t.letter||"",rank:t.rank||(t.frog?1:0),done:!!t.done,doneAt:t.doneAt||null,created:t.created||Date.now(),ex:!!t.ex,slices:Array.isArray(t.slices)?t.slices:[],need:t.need||"",due:t.due||"",u:t.u||0})):[];
+  const goals=Array.isArray(s.goals)?s.goals.map((g,i)=>({id:g.id||uidGen(),text:String(g.text||""),deadline:g.deadline||"",major:g.major!=null?!!g.major:i===0,ex:!!g.ex,blocker:g.blocker||"",steps:Array.isArray(g.steps)?g.steps:[],u:g.u||0})):[];
+  const o={v:2,created:s.created||Date.now(),tasks,goals,kra:Array.isArray(s.kra)?s.kra.map(k=>({id:k.id||uidGen(),name:String(k.name||""),score:+k.score||5,u:k.u||0})):[],frogLog:s.frogLog&&typeof s.frogLog==="object"?s.frogLog:{},
     habits:s.habits&&typeof s.habits==="object"?s.habits:{},plan:s.plan&&typeof s.plan==="object"?s.plan:{},answers:s.answers&&typeof s.answers==="object"?s.answers:{},
-    oneSkill:s.oneSkill||"",bestTime:s.bestTime||"morning",dayOff:s.dayOff||"Sunday"};
+    oneSkill:s.oneSkill||"",bestTime:s.bestTime||"morning",dayOff:s.dayOff||"Sunday",tomb:s.tomb&&typeof s.tomb==="object"?s.tomb:{},updatedAt:s.updatedAt||0};
   // old v1 frogLog stored `true`; keep it as a count
   fixRanks(o); return o;
 }
@@ -336,21 +336,26 @@ function prune(){
   state.tasks=state.tasks.filter(t=>!t.done||!t.doneAt||t.doneAt>cut);
   ["habits","plan"].forEach(k=>Object.keys(state[k]).forEach(d=>{if(d<old) delete state[k][d]}));
 }
-function commit(){ fixRanks(); prune(); saveLocal(); render(); scheduleSave(); }
-function quietCommit(){ saveLocal(); scheduleSave(); }
-function scheduleSave(){ if(!docRef) return; clearTimeout(saveTimer); saveTimer=setTimeout(flush,700); }
-async function flush(){
-  if(!docRef) return;
-  if(saving){saveAgain=true;return}
-  const body=JSON.stringify(state); if(body===lastWritten) return;
-  saving=true; setSync("saving");
-  try{ await docRef.set(JSON.parse(body)); lastWritten=body; setSync("cloud"); }
-  catch(e){ if(e&&e.code==="unavailable"){ setTimeout(flush,1500+Math.random()*1500); } else { syncMode="local"; docRef=null; setSync("local"); } }
-  saving=false; if(saveAgain){saveAgain=false;flush();}
+// Change tracking: every task, goal and key area gets a "last changed" time (u),
+// and deleted ones leave a tombstone, so two devices can be merged item by item.
+let prevSig=null;
+function sigOf(st){ const m={}; ["tasks","goals","kra"].forEach(k=>st[k].forEach(it=>{ const c=Object.assign({},it); delete c.u; m[k+"|"+it.id]=JSON.stringify(c); })); return m; }
+function stamp(){
+  const now=Date.now(), cur=sigOf(state);
+  if(prevSig){
+    const idx={}; ["tasks","goals","kra"].forEach(k=>state[k].forEach(it=>idx[k+"|"+it.id]=it));
+    for(const key in cur) if(prevSig[key]!==cur[key]) idx[key].u=now;
+    for(const key in prevSig) if(!(key in cur)) state.tomb[key.split("|")[1]]=now;
+  }
+  const old=now-90*864e5; for(const id in state.tomb) if(state.tomb[id]<old) delete state.tomb[id];
+  state.updatedAt=now; prevSig=sigOf(state);
 }
-function setSync(m){ if(m!=="saving") syncMode=m; const el=document.getElementById("sync"); if(!el) return;
-  el.className="sync"+(m==="cloud"?" ok":"");
-  el.textContent="Saved on this device";
+function commit(){ fixRanks(); prune(); stamp(); saveLocal(); render(); schedulePush(); }
+function quietCommit(){ stamp(); saveLocal(); schedulePush(); }
+function setSync(m){ if(m) syncMode=m; const el=document.getElementById("sync"); if(!el) return;
+  const L={local:"On this device · tap to sync",synced:"Synced",saving:"Syncing…",offline:"Offline · saved on device",locked:"Locked · tap to unlock",error:"Sync problem · tap"};
+  el.className="sync"+(syncMode==="synced"?" ok":"");
+  el.textContent=L[syncMode]||L.local;
 }
 
 // ================= HELPERS =================
@@ -444,7 +449,7 @@ function viewToday(){
   const days21=Math.min(st,21);
   return `
   <header class="top"><div class="who"><h1>Frog Pond</h1><p class="small muted">${d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})}</p></div>
-    <button class="talk" data-act="talk" aria-label="Say it to yourself, tap for another">${TALK[ui.talk%TALK.length]}</button><span id="sync" class="sync"></span></header>
+    <button class="talk" data-act="talk" aria-label="Say it to yourself, tap for another">${TALK[ui.talk%TALK.length]}</button><button id="sync" class="sync" data-act="gosync" style="border:none"></button></header>
   ${banner}
   ${frogHtml}
 
@@ -562,6 +567,7 @@ function viewMe(){
   const qa=(group)=>QUESTIONS[group].map(([k,q])=>`<label class="f">${q}<textarea class="in" id="q-${group}-${k}" data-ans="${group}.${k}" rows="2">${esc(ans[group+"."+k]||"")}</textarea></label>`).join("");
   return `
   <h1>Me</h1>
+  ${accountCard()}
   <section class="card">
     <div class="section-head"><h2>Key result areas</h2><span class="src">Rule 6</span></div>
     <p class="small muted">Most jobs have 5 to 7 results you must get. Score yourself 1 to 10 on each. Your weakest area sets how high you can go, so work on it first.</p>
@@ -609,14 +615,17 @@ function viewRules(){
   <p class="small muted">Retold in simple words from Eat That Frog! by Brian Tracy. Read these again and again until they are habits.</p>`;
 }
 
+let keepCleared=false;
 function render(){
   const app=document.getElementById("app");
-  const active=document.activeElement&&document.activeElement.id;
+  const ae=document.activeElement, active=ae&&ae.id;
+  const typing=active&&(ae.tagName==="INPUT"||ae.tagName==="TEXTAREA")&&ae.type!=="range"?{v:ae.value,s:ae.selectionStart,e:ae.selectionEnd}:null;
   const y=window.scrollY;
   app.innerHTML=ui.tab==="lists"?viewLists():ui.tab==="goals"?viewGoals():ui.tab==="me"?viewMe():ui.tab==="rules"?viewRules():viewToday();
   setSync(syncMode);
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===ui.tab)));
-  if(active){const el=document.getElementById(active); if(el&&(el.tagName==="INPUT"||el.tagName==="TEXTAREA")&&el.type!=="range"&&!el.disabled) el.focus({preventScroll:true});}
+  if(active){const el=document.getElementById(active); if(el&&(el.tagName==="INPUT"||el.tagName==="TEXTAREA")&&el.type!=="range"&&!el.disabled) el.focus({preventScroll:true}); if(typing&&el.value!==typing.v&&!keepCleared){ el.value=typing.v; try{el.setSelectionRange(typing.s,typing.e)}catch(x){} } }
+  keepCleared=false;
   window.scrollTo(0,y);
 }
 
@@ -698,7 +707,7 @@ document.addEventListener("change",e=>{
   const fr=new FileReader();
   fr.onload=()=>{ try{ const data=JSON.parse(fr.result); if(!data||!Array.isArray(data.tasks)) throw 0;
       try{localStorage.setItem("frogpond.prev",JSON.stringify(state))}catch(x){}
-      state=normalize(data); commit(); toast("Backup loaded. Your plan is here now."); }
+      const imp=normalize(data); ["tasks","goals","kra"].forEach(k=>imp[k].forEach(it=>it.u=Date.now())); imp.updatedAt=Date.now(); state=mergeState(state,imp); prevSig=null; commit(); toast("Backup loaded. Your plan is here now."); }
     catch(x){ toast("That file is not a Frog Pond backup."); } };
   fr.readAsText(e.target.files[0]); e.target.value="";
 });
@@ -774,7 +783,7 @@ function askSteps(prompt){
 layer.addEventListener("click",e=>{ if(e.target.classList.contains("overlay")&&e.target.dataset.close) closeLayer(); });
 
 document.addEventListener("submit",e=>{
-  const f=e.target; e.preventDefault(); if(!state) return;
+  const f=e.target; e.preventDefault(); if(!state) return; keepCleared=true;
   const kind=f.dataset.form; const val=(id)=>{const el=document.getElementById(id);return el?el.value:""};
   if(kind==="add"){const i=f.querySelector("input");const v=clip(i.value);if(!v)return;state.tasks.push({id:uidGen(),text:v,list:f.dataset.list,letter:f.dataset.list==="no"?"E":"",rank:0,done:false,created:Date.now(),slices:[],need:"",due:""});i.value="";commit();}
   else if(kind==="slice"){const t=byId(f.dataset.id);const v=clip(val("slice-in"));if(!v||!t)return;t.slices.push({id:uidGen(),text:v,done:false});commit();}
@@ -793,8 +802,162 @@ document.addEventListener("change",e=>{
   if(el.dataset.field){state[el.dataset.field]=clip(el.value,300); if(el.tagName==="SELECT") commit(); else quietCommit();}
 });
 
+// ================= SYNC (Firebase, free Spark plan) =================
+const FB_CONFIG={apiKey:"AIzaSyAZl4UB5idQM7iSVy6CrpCSi0xeNcLE_mE",authDomain:"frog-pond-74a4a.firebaseapp.com",projectId:"frog-pond-74a4a",storageBucket:"frog-pond-74a4a.firebasestorage.app",messagingSenderId:"820172492190",appId:"1:820172492190:web:59c168e189545144bbda8f"};
+const FB_VER="10.14.1";
+let fbReady=false, fbFailed=false, auth=null, fs=null, fbUser=null, unsub=null, pushTimer=null, writing=false, pendingPush=false;
+let lastDoc=null, locked=null, cryptoKey=null, authMsg="", authBusy=false, isStandalone=!!(window.navigator.standalone||(window.matchMedia&&matchMedia("(display-mode: standalone)").matches));
+
+function mergeState(L,R){
+  const newer=(R.updatedAt||0)>(L.updatedAt||0)?R:L, older=newer===R?L:R;
+  const out=normalize(JSON.parse(JSON.stringify(newer)));
+  const tomb={}; [L.tomb||{},R.tomb||{}].forEach(t=>{for(const k in t) tomb[k]=Math.max(tomb[k]||0,t[k])});
+  ["tasks","goals","kra"].forEach(k=>{
+    const m=new Map(); newer[k].forEach(it=>m.set(it.id,it));
+    older[k].forEach(it=>{const ex=m.get(it.id); if(!ex||(it.u||0)>(ex.u||0)) m.set(it.id,it);});
+    out[k]=JSON.parse(JSON.stringify([...m.values()].filter(it=>!(tomb[it.id]&&tomb[it.id]>=(it.u||0)))));
+  });
+  ["frogLog","answers"].forEach(k=>out[k]=Object.assign({},older[k],newer[k]));
+  ["habits","plan"].forEach(k=>{const o={}; new Set([...Object.keys(older[k]),...Object.keys(newer[k])]).forEach(d=>o[d]=Object.assign({},older[k][d],newer[k][d])); out[k]=o;});
+  out.tomb=tomb; out.updatedAt=Math.max(L.updatedAt||0,R.updatedAt||0); return normalize(out);
+}
+
+// ---- optional end-to-end lock (AES-GCM, key made from your passphrase; never leaves your devices)
+const b64e=buf=>btoa(String.fromCharCode(...new Uint8Array(buf)));
+const b64d=str=>Uint8Array.from(atob(str),c=>c.charCodeAt(0));
+async function deriveKey(pass,saltB64){
+  const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(pass),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt:b64d(saltB64),iterations:250000,hash:"SHA-256"},base,{name:"AES-GCM",length:256},true,["encrypt","decrypt"]);
+}
+async function encryptStr(str){ const iv=crypto.getRandomValues(new Uint8Array(12)); const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},cryptoKey,new TextEncoder().encode(str)); return {iv:b64e(iv),data:b64e(ct)}; }
+async function decryptDoc(d,key){ const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:b64d(d.iv)},key,b64d(d.data)); return new TextDecoder().decode(pt); }
+async function saveKey(){ try{ const jwk=await crypto.subtle.exportKey("jwk",cryptoKey); localStorage.setItem("frogpond.key",JSON.stringify(jwk)); }catch(e){} }
+async function loadKey(){ try{ const j=localStorage.getItem("frogpond.key"); if(j) cryptoKey=await crypto.subtle.importKey("jwk",JSON.parse(j),{name:"AES-GCM"},true,["encrypt","decrypt"]); }catch(e){ cryptoKey=null; } }
+
+function loadScript(src){ return new Promise((res,rej)=>{ const sc=document.createElement("script"); sc.src=src; sc.onload=res; sc.onerror=rej; document.head.appendChild(sc); }); }
+async function startFirebase(){
+  if(fbReady) return;
+  try{
+    const base="https://www.gstatic.com/firebasejs/"+FB_VER+"/";
+    await loadScript(base+"firebase-app-compat.js");
+    await Promise.all([loadScript(base+"firebase-auth-compat.js"),loadScript(base+"firebase-firestore-compat.js")]);
+    firebase.initializeApp(FB_CONFIG);
+    auth=firebase.auth(); fs=firebase.firestore();
+    fbReady=true; fbFailed=false;
+    auth.getRedirectResult().catch(e=>{authMsg=authError(e);render();});
+    auth.onAuthStateChanged(onUser);
+  }catch(e){ fbFailed=true; setSync(navigator.onLine?"local":"offline"); if(ui.tab==="me") render(); }
+}
+function docRef(){ return fs.doc("users/"+fbUser.uid+"/data/main"); }
+function onUser(u){
+  fbUser=u||null; if(unsub){unsub();unsub=null;}
+  if(!fbUser){ locked=null; setSync("local"); render(); return; }
+  setSync("saving"); render();
+  unsub=docRef().onSnapshot(snap=>{ handleRemote(snap); },err=>{ setSync("error"); authMsg="Sync stopped: "+(err&&err.code||"error")+". Reload the app."; render(); });
+}
+async function handleRemote(snap){
+  if(snap.metadata.hasPendingWrites) return;
+  if(!snap.exists){ locked=null; pushNow(); return; }
+  const d=snap.data(); lastDoc=d;
+  let remote;
+  if(d.enc){
+    cfg.lock=true; cfg.salt=d.salt; saveCfg();
+    if(!cryptoKey){ locked=true; setSync("locked"); render(); return; }
+    try{ remote=JSON.parse(await decryptDoc(d,cryptoKey)); }catch(e){ cryptoKey=null; locked=true; setSync("locked"); render(); return; }
+  } else { cfg.lock=false; saveCfg(); try{ remote=JSON.parse(d.json||"{}"); }catch(e){ remote={}; } }
+  locked=null;
+  const R=normalize(remote);
+  const merged=mergeState(state,R);
+  const localChanged=JSON.stringify(merged)!==JSON.stringify(state);
+  state=merged; prevSig=sigOf(state); saveLocal();
+  if(localChanged) render();
+  if(JSON.stringify(merged)!==JSON.stringify(R)) schedulePush(300); else setSync("synced");
+}
+function schedulePush(ms){ if(!fbUser||locked) return; clearTimeout(pushTimer); pushTimer=setTimeout(pushNow,ms==null?800:ms); }
+async function pushNow(){
+  if(!fbUser||locked) return;
+  if(writing){ pendingPush=true; return; }
+  writing=true; setSync(navigator.onLine?"saving":"offline");
+  try{
+    const json=JSON.stringify(state); let doc;
+    if(cfg.lock&&cryptoKey){ const e=await encryptStr(json); doc={v:2,enc:true,salt:cfg.salt,iv:e.iv,data:e.data,updatedAt:state.updatedAt||Date.now()}; }
+    else doc={v:2,enc:false,json,updatedAt:state.updatedAt||Date.now()};
+    await docRef().set(doc); setSync("synced");
+  }catch(e){ setSync(navigator.onLine?"error":"offline"); }
+  writing=false; if(pendingPush){ pendingPush=false; pushNow(); }
+}
+window.addEventListener("online",()=>{ if(!fbReady) startFirebase(); else schedulePush(100); });
+window.addEventListener("offline",()=>setSync(fbUser?"offline":"local"));
+
+function authError(e){
+  const c=e&&e.code||"";
+  return ({"auth/invalid-credential":"Wrong email or password.","auth/wrong-password":"Wrong email or password.","auth/user-not-found":"No account with this email. Tap Create account.",
+    "auth/email-already-in-use":"This email already has an account. Tap Sign in.","auth/weak-password":"Password needs at least 6 characters.","auth/invalid-email":"That email doesn't look right.",
+    "auth/network-request-failed":"No internet. Try again when online.","auth/too-many-requests":"Too many tries. Wait a few minutes.","auth/popup-closed-by-user":"Google sign-in was closed.",
+    "auth/account-exists-with-different-credential":"This email already uses a password. Sign in with email and password.","auth/unauthorized-domain":"This website is not allowed yet in Firebase (Authorized domains)."})[c]||("Sign-in problem: "+(c||"unknown"));
+}
+function accountCard(){
+  if(!fbReady) return `<section class="card" id="sync-card"><div class="section-head"><h2>Sync phone and laptop</h2></div>
+    <p class="small muted">${fbFailed?"Can't reach the sync service right now. Check your internet, then":"Loading sync…"} Your plan is still saved on this device.</p>
+    ${fbFailed?'<div class="row"><button class="btn" data-act="retryfb">Try again</button></div>':""}</section>`;
+  if(!fbUser) return `<section class="card" id="sync-card">
+    <div class="section-head"><h2>Sync phone and laptop</h2><span class="src">Free · private</span></div>
+    <p class="small muted">Sign in with the <b>same email</b> on your iPhone and your Mac. Your plan then updates on both by itself. Only you can read it.</p>
+    <form class="panel" data-form="auth">
+      <label class="f">Email<input class="in" type="email" id="acc-email" autocomplete="username" required></label>
+      <label class="f">Password (6+ characters)<input class="in" type="password" id="acc-pass" autocomplete="current-password" minlength="6" required></label>
+      <div class="row"><button class="btn primary" data-mode="in" ${authBusy?"disabled":""}>Sign in</button><button class="btn" data-mode="up" ${authBusy?"disabled":""}>Create account</button><button class="btn tiny ghost" type="button" data-act="resetpw">Forgot password</button></div>
+    </form>
+    ${isStandalone?"":`<div class="row"><button class="btn ghost" data-act="google">Or sign in with Google</button><span class="small muted">On the iPhone home-screen app, use email and password.</span></div>`}
+    ${authMsg?`<p class="small" role="alert"><b>${esc(authMsg)}</b></p>`:""}
+  </section>`;
+  return `<section class="card" id="sync-card">
+    <div class="section-head"><h2>Sync phone and laptop</h2><span class="sync ${syncMode==="synced"?"ok":""}">${esc(({synced:"Synced",saving:"Syncing…",offline:"Offline",locked:"Locked",error:"Problem"})[syncMode]||"")}</span></div>
+    <p class="small">Signed in as <b>${esc(fbUser.email||"Google account")}</b>. Sign in with the same account on your other devices.</p>
+    ${locked?`<form class="panel" data-form="unlock"><p class="small"><b>Your data is locked with a passphrase.</b> Type it once on this device to unlock.</p>
+      <label class="f">Passphrase<input class="in" type="password" id="unlock-pass" autocomplete="off" required></label><button class="btn primary">Unlock</button></form>`
+    :cfg.lock?`<p class="small">🔒 <b>Extra lock is on.</b> Your plan is encrypted on this device before upload. Even Google can't read it.</p><div class="row"><button class="btn tiny ghost" data-act="lockoff">Turn extra lock off</button></div>`
+    :`<details><summary class="small"><b>Extra lock (optional)</b></summary>
+      <form class="panel" data-form="lockon" style="margin-top:8px"><p class="small muted">Scrambles your plan with a passphrase before upload, so only your devices can read it. <b>If you forget the passphrase, synced data can't be recovered</b> (this device keeps its copy). Write it down.</p>
+      <label class="f">Passphrase (8+ characters)<input class="in" type="password" id="lock-p1" minlength="8" autocomplete="new-password" required></label>
+      <label class="f">Type it again<input class="in" type="password" id="lock-p2" minlength="8" autocomplete="new-password" required></label>
+      <button class="btn primary">Turn on extra lock</button></form></details>`}
+    ${authMsg?`<p class="small" role="alert"><b>${esc(authMsg)}</b></p>`:""}
+    <div class="row"><button class="btn ghost tiny" data-act="signout">Sign out</button><button class="btn ghost tiny" data-act="signoutwipe">Sign out and remove data from this device</button></div>
+  </section>`;
+}
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-act]"); if(!b) return; const a=b.dataset.act;
+  if(a==="gosync"){ ui.tab="me"; saveUI(); render(); const c=document.getElementById("sync-card"); if(c) c.scrollIntoView({behavior:"smooth"}); }
+  else if(a==="retryfb"){ fbFailed=false; render(); startFirebase(); }
+  else if(a==="google"){ authMsg=""; const pr=new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(pr).catch(err=>{ if(err.code==="auth/popup-blocked"||err.code==="auth/operation-not-supported-in-this-environment") auth.signInWithRedirect(pr); else { authMsg=authError(err); render(); } }); }
+  else if(a==="resetpw"){ const em=(document.getElementById("acc-email")||{}).value; if(!em){ authMsg="Type your email first, then tap Forgot password."; render(); return; }
+    auth.sendPasswordResetEmail(em.trim()).then(()=>{authMsg="Password reset email sent. Check your inbox.";render();}).catch(err=>{authMsg=authError(err);render();}); }
+  else if(a==="signout"){ await auth.signOut(); authMsg=""; toast("Signed out. Your plan stays on this device."); }
+  else if(a==="signoutwipe"){ await auth.signOut(); try{["frogpond.v2","frogpond.v1","frogpond.key"].forEach(k=>localStorage.removeItem(k));}catch(x){} cryptoKey=null; cfg.lock=false; cfg.salt=""; saveCfg(); state=normalize({}); prevSig=null; saveLocal(); render(); toast("Signed out. This device is clean."); }
+  else if(a==="lockoff"){ cfg.lock=false; saveCfg(); cryptoKey=null; try{localStorage.removeItem("frogpond.key")}catch(x){} pushNow(); render(); toast("Extra lock off."); }
+});
+document.addEventListener("submit",async e=>{
+  const f=e.target, kind=f.dataset.form;
+  if(kind==="auth"){ e.preventDefault(); const mode=(e.submitter&&e.submitter.dataset.mode)||"in";
+    const em=document.getElementById("acc-email").value.trim(), pw=document.getElementById("acc-pass").value;
+    authBusy=true; authMsg=""; render();
+    try{ if(mode==="up") await auth.createUserWithEmailAndPassword(em,pw); else await auth.signInWithEmailAndPassword(em,pw); toast("Signed in. Syncing your plan…"); }
+    catch(err){ authMsg=authError(err); }
+    authBusy=false; render(); }
+  else if(kind==="lockon"){ e.preventDefault(); const p1=document.getElementById("lock-p1").value, p2=document.getElementById("lock-p2").value;
+    if(p1.length<8){ authMsg="Passphrase needs 8+ characters."; render(); return; }
+    if(p1!==p2){ authMsg="The two passphrases don't match."; render(); return; }
+    cfg.salt=b64e(crypto.getRandomValues(new Uint8Array(16))); cryptoKey=await deriveKey(p1,cfg.salt); await saveKey(); cfg.lock=true; saveCfg(); authMsg=""; await pushNow(); render(); toast("Extra lock is on. Write the passphrase down."); }
+  else if(kind==="unlock"){ e.preventDefault(); const pass=document.getElementById("unlock-pass").value; if(!lastDoc) return;
+    try{ const k=await deriveKey(pass,lastDoc.salt); await decryptDoc(lastDoc,k); cryptoKey=k; await saveKey(); locked=null; authMsg=""; toast("Unlocked."); handleRemote({exists:true,metadata:{hasPendingWrites:false},data:()=>lastDoc}); }
+    catch(err){ authMsg="Wrong passphrase. Try again."; render(); } }
+});
+
 // ================= BOOT =================
-state=loadLocal()||examples(); ai=makeAI(); render();
+state=loadLocal()||examples(); prevSig=sigOf(state); ai=makeAI(); render();
+loadKey().then(()=>{ if(navigator.onLine) startFirebase(); else setSync("local"); });
 if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 })();
 </script>

@@ -4,7 +4,9 @@ A free daily planner built on *Eat That Frog!* by Brian Tracy: the frog-first ha
 
 - Works in any browser: iPhone, Mac, Windows, Android.
 - On iPhone, open the link in Safari → Share → **Add to Home Screen**. It opens like an app and works offline.
-- Your data stays on your device. Use **Me → Settings → Save backup file / Load backup file** to move it between phone and laptop.
+- **Sync (free, private):** Me tab → sign in with the same email on every device. Data lives in your own Firebase project (Spark free plan); Firestore rules let only your account read it. Optional **extra lock** encrypts everything on the device (AES-GCM, key from your passphrase) before upload.
+- Works offline: changes save on the device and sync when back online. Edits from two devices merge item by item.
+- Backup file (Me → Settings) still works as an extra safety net.
 - Optional free AI: paste a free Gemini key from https://aistudio.google.com in **Me → Settings**.
 
 ## Free reminders on Telegram (optional)
