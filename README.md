@@ -206,13 +206,15 @@ With a free Gemini key saved in Me → Settings, the app sends a short prompt su
 
 ## 7. Privacy and security
 
-- **Firestore rules:** only the signed-in owner can read or write their own data:
+- **Firestore rules:** only the signed-in owner can read or write their own single document, and only the fields the app uses are accepted:
   ```
   rules_version = '2';
   service cloud.firestore {
     match /databases/{database}/documents {
-      match /users/{uid}/{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == uid;
+      match /users/{uid}/data/main {
+        allow read, delete: if request.auth != null && request.auth.uid == uid;
+        allow create, update: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['v','enc','json','salt','iv','data','updatedAt']);
       }
     }
   }
@@ -220,7 +222,29 @@ With a free Gemini key saved in Me → Settings, the app sends a short prompt su
 - **The Firebase web config in `index.html` is public by design.** It only names the project; the security comes from the rules above and the authorized-domain list in Firebase Authentication.
 - **No personal data in this repo.** Tasks, goals and answers live only on the devices and in your own Firebase project.
 - **Secrets** (Telegram token, chat ID) are GitHub Actions secrets, hidden even in a public repo. The Gemini key never leaves the device.
-- **Shared computer?** Me → "Sign out and remove data from this device".
+- **Shared computer?** Me → "Sign out and remove data from this device" (also removes the Gemini key and settings from that device).
+- **Input hardening:** everything loaded from storage, sync or a backup file is checked and cleaned (ids limited to letters, digits, `-` and `_`; text length capped; unknown values reset), and all user text is HTML-escaped before display, so a bad backup file cannot inject code.
+- **Least privilege in CI:** the reminder workflow runs with `permissions: {}` and a 2-minute timeout.
+
+### Security checklist (do once in the Firebase / Google Cloud console)
+
+1. **Turn off public sign-ups** after creating your own account: Firebase → Authentication → Settings → User actions → untick **Enable create (sign-up)**. Strangers then can't make accounts and use your free quota.
+2. **Lock the web API key to your site:** console.cloud.google.com → project *frog-pond* → APIs & Services → Credentials → *Browser key (auto created by Firebase)* → Application restrictions: **Websites** → add `https://dheerajd9.github.io/*` and `https://frog-pond-74a4a.firebaseapp.com/*` → Save.
+3. **Keep email enumeration protection on:** Authentication → Settings → User actions (on by default for new projects).
+4. Stay on the **Spark (no-cost)** plan, so there can never be a bill.
+
+### Security review done (October 2026)
+
+| Check | Result |
+|---|---|
+| Secrets in code and full git history | None. Only the Firebase web config, which is public by design |
+| HTML injection from synced data or backup files | Fixed: strict cleaning of all loaded data plus escaping |
+| Cross-user data access | Blocked by the Firestore rules (uid must match) |
+| Unwanted sign-ups and quota abuse | Sign-up switch, API key website restriction |
+| Data left on shared devices | "Sign out and remove data" wipes the plan, key, settings and AI key |
+| CI token scope | `permissions: {}` |
+| Third-party script integrity | Firebase SDK loaded from Google's versioned CDN (pinned 10.14.1) |
+
 
 ## 8. Cost: why it is free
 
@@ -287,6 +311,9 @@ Open the link in any browser and bookmark it. Sign in with the same email and pa
 ## 11. Testing
 
 Checks run during development (headless Chromium at iPhone size):
+- crafted ids and HTML in a backup file are cleaned before display,
+- undoing "I ate my frog" stays undone after a two-device merge,
+- a new device's example items are not pushed into an existing synced plan,
 - the app loads with no script errors, and every tab renders,
 - eating the frog fills the 21-day tracker and logs the day,
 - the focus timer opens, counts down and closes,
@@ -313,7 +340,6 @@ Real-device check: installed on the iPhone home screen, signed in, and synced wi
 
 **Known limits**
 - iPhone home-screen apps can't run in the background, so reminders come from Telegram, not app notifications.
-- Undoing "I ate my frog" on one device while another device still shows it eaten can bring the eaten mark back after a merge.
 - Google sign-in and email sign-in with the same address are separate accounts. Use one method on every device.
 - GitHub pauses scheduled workflows after 60 days with no commits. Re-enable it from the Actions tab if reminders stop.
 

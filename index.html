@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#2f8f4e">
+<meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Frog Pond">
@@ -316,13 +318,16 @@ function examples(){
     kra:[{id:uidGen(),name:"Planning my day",score:6},{id:uidGen(),name:"Health and energy",score:5},{id:uidGen(),name:"Key work skill",score:7}],
     frogLog:{}, habits:{}, plan:{}, answers:{}, oneSkill:"", bestTime:"morning", dayOff:"Sunday"};
 }
+const safeId=v=>{v=String(v==null?"":v).replace(/[^A-Za-z0-9_-]/g,"").slice(0,40);return v||uidGen();};
+const safeSub=a=>Array.isArray(a)?a.filter(x=>x&&typeof x==="object").map(x=>({id:safeId(x.id),text:String(x.text||"").slice(0,300),done:!!x.done})):[];
+const safeMap=o=>o&&typeof o==="object"&&!Array.isArray(o)?o:{};
 function normalize(s){
   s=s&&typeof s==="object"?s:{};
-  const tasks=Array.isArray(s.tasks)?s.tasks.map(t=>({id:t.id||uidGen(),text:String(t.text||""),list:t.list||"master",letter:t.letter||"",rank:t.rank||(t.frog?1:0),done:!!t.done,doneAt:t.doneAt||null,created:t.created||Date.now(),ex:!!t.ex,slices:Array.isArray(t.slices)?t.slices:[],need:t.need||"",due:t.due||"",u:t.u||0})):[];
-  const goals=Array.isArray(s.goals)?s.goals.map((g,i)=>({id:g.id||uidGen(),text:String(g.text||""),deadline:g.deadline||"",major:g.major!=null?!!g.major:i===0,ex:!!g.ex,blocker:g.blocker||"",steps:Array.isArray(g.steps)?g.steps:[],u:g.u||0})):[];
-  const o={v:2,created:s.created||Date.now(),tasks,goals,kra:Array.isArray(s.kra)?s.kra.map(k=>({id:k.id||uidGen(),name:String(k.name||""),score:+k.score||5,u:k.u||0})):[],frogLog:s.frogLog&&typeof s.frogLog==="object"?s.frogLog:{},
-    habits:s.habits&&typeof s.habits==="object"?s.habits:{},plan:s.plan&&typeof s.plan==="object"?s.plan:{},answers:s.answers&&typeof s.answers==="object"?s.answers:{},
-    oneSkill:s.oneSkill||"",bestTime:s.bestTime||"morning",dayOff:s.dayOff||"Sunday",tomb:s.tomb&&typeof s.tomb==="object"?s.tomb:{},updatedAt:s.updatedAt||0};
+  const tasks=Array.isArray(s.tasks)?s.tasks.filter(t=>t&&typeof t==="object").map(t=>({id:safeId(t.id),text:String(t.text||"").slice(0,300),list:["master","month","week","day","no"].includes(t.list)?t.list:"master",letter:["A","B","C","D","E"].includes(t.letter)?t.letter:"",rank:t.rank||(t.frog?1:0),done:!!t.done,doneAt:t.doneAt||null,created:t.created||Date.now(),ex:!!t.ex,slices:safeSub(t.slices),need:String(t.need||"").slice(0,300),due:/^\d{4}-\d{2}-\d{2}$/.test(t.due||"")?t.due:"",u:+t.u||0})):[];
+  const goals=Array.isArray(s.goals)?s.goals.filter(g=>g&&typeof g==="object").map((g,i)=>({id:safeId(g.id),text:String(g.text||"").slice(0,300),deadline:/^\d{4}-\d{2}-\d{2}$/.test(g.deadline||"")?g.deadline:"",major:g.major!=null?!!g.major:i===0,ex:!!g.ex,blocker:String(g.blocker||"").slice(0,300),steps:safeSub(g.steps),u:+g.u||0})):[];
+  const o={v:2,created:s.created||Date.now(),tasks,goals,kra:Array.isArray(s.kra)?s.kra.filter(k=>k&&typeof k==="object").map(k=>({id:safeId(k.id),name:String(k.name||"").slice(0,80),score:Math.min(10,Math.max(1,+k.score||5)),u:+k.u||0})):[],frogLog:safeMap(s.frogLog),
+    habits:safeMap(s.habits),plan:safeMap(s.plan),answers:safeMap(s.answers),
+    oneSkill:String(s.oneSkill||"").slice(0,300),bestTime:["morning","afternoon","evening"].includes(s.bestTime)?s.bestTime:"morning",dayOff:["Saturday","Sunday"].includes(s.dayOff)?s.dayOff:"Sunday",tomb:safeMap(s.tomb),updatedAt:s.updatedAt||0};
   // old v1 frogLog stored `true`; keep it as a count
   fixRanks(o); return o;
 }
@@ -413,7 +418,7 @@ function viewToday(){
   const f=a1();
   const day=sorted("day");
   const hasEx=state.tasks.some(t=>t.ex)||state.goals.some(g=>g.ex);
-  const h=todayHabits(); const st=streak(); const total=Object.keys(state.frogLog).length;
+  const h=todayHabits(); const st=streak(); const total=Object.values(state.frogLog).filter(Boolean).length;
   const n=day.filter(t=>!t.done).length, vital=Math.max(1,Math.ceil(n*0.2));
   const mg=majorGoal(), nb=nextBarrel(mg);
   const dow=d.getDay(), lastDays=new Date(d.getFullYear(),d.getMonth()+1,0).getDate()-d.getDate();
@@ -705,7 +710,7 @@ function exportData(){
 document.addEventListener("change",e=>{
   if(e.target.id!=="importf"||!e.target.files[0]) return;
   const fr=new FileReader();
-  fr.onload=()=>{ try{ const data=JSON.parse(fr.result); if(!data||!Array.isArray(data.tasks)) throw 0;
+  fr.onload=()=>{ try{ if(fr.result.length>5e6) throw 0; const data=JSON.parse(fr.result); if(!data||!Array.isArray(data.tasks)) throw 0;
       try{localStorage.setItem("frogpond.prev",JSON.stringify(state))}catch(x){}
       const imp=normalize(data); ["tasks","goals","kra"].forEach(k=>imp[k].forEach(it=>it.u=Date.now())); imp.updatedAt=Date.now(); state=mergeState(state,imp); prevSig=null; commit(); toast("Backup loaded. Your plan is here now."); }
     catch(x){ toast("That file is not a Frog Pond backup."); } };
@@ -731,7 +736,7 @@ document.addEventListener("click",e=>{
       if(!t.done&&(t.letter==="B"||t.letter==="C")&&t.list==="day"&&a1()){ toast("Tadpole before frog! Never do a "+t.letter+" while an A is left. (Rule 5)"); }
       t.done=!t.done; t.doneAt=t.done?Date.now():null;
       if(t.done&&wasA1&&eatFrog(t)){ commit(); party(); return; }
-      if(!t.done&&state.frogLog[dkey()]===t.id){ delete state.frogLog[dkey()]; t.letter="A"; t.rank=0.5; }
+      if(!t.done&&state.frogLog[dkey()]===t.id){ state.frogLog[dkey()]=""; t.letter="A"; t.rank=0.5; }
       break; }
     case "letter": { if(!t) return; const nl=LETTERS[(LETTERS.indexOf(t.letter||"")+1)%LETTERS.length]; setLetter(t,nl);
       if(nl==="D") toast("D: give this to someone else if you can."); else if(nl==="E") toast("E: throw it away. Delete it, or put it on the Not doing list.");
@@ -849,15 +854,16 @@ async function startFirebase(){
   }catch(e){ fbFailed=true; setSync(navigator.onLine?"local":"offline"); if(ui.tab==="me") render(); }
 }
 function docRef(){ return fs.doc("users/"+fbUser.uid+"/data/main"); }
+let firstSnap=false;
 function onUser(u){
-  fbUser=u||null; if(unsub){unsub();unsub=null;}
+  fbUser=u||null; firstSnap=true; if(unsub){unsub();unsub=null;}
   if(!fbUser){ locked=null; setSync("local"); render(); return; }
   setSync("saving"); render();
   unsub=docRef().onSnapshot(snap=>{ handleRemote(snap); },err=>{ setSync("error"); authMsg="Sync stopped: "+(err&&err.code||"error")+". Reload the app."; render(); });
 }
 async function handleRemote(snap){
   if(snap.metadata.hasPendingWrites) return;
-  if(!snap.exists){ locked=null; pushNow(); return; }
+  if(!snap.exists){ locked=null; firstSnap=false; pushNow(); return; }
   const d=snap.data(); lastDoc=d;
   let remote;
   if(d.enc){
@@ -867,6 +873,7 @@ async function handleRemote(snap){
   } else { cfg.lock=false; saveCfg(); try{ remote=JSON.parse(d.json||"{}"); }catch(e){ remote={}; } }
   locked=null;
   const R=normalize(remote);
+  if(firstSnap){ firstSnap=false; const keep=new Set([...R.tasks,...R.goals].map(x=>x.id)); state.tasks=state.tasks.filter(x=>!x.ex||keep.has(x.id)); state.goals=state.goals.filter(x=>!x.ex||keep.has(x.id)); }
   const merged=mergeState(state,R);
   const localChanged=JSON.stringify(merged)!==JSON.stringify(state);
   state=merged; prevSig=sigOf(state); saveLocal();
@@ -894,7 +901,7 @@ function authError(e){
   return ({"auth/invalid-credential":"Wrong email or password.","auth/wrong-password":"Wrong email or password.","auth/user-not-found":"No account with this email. Tap Create account.",
     "auth/email-already-in-use":"This email already has an account. Tap Sign in.","auth/weak-password":"Password needs at least 6 characters.","auth/invalid-email":"That email doesn't look right.",
     "auth/network-request-failed":"No internet. Try again when online.","auth/too-many-requests":"Too many tries. Wait a few minutes.","auth/popup-closed-by-user":"Google sign-in was closed.",
-    "auth/account-exists-with-different-credential":"This email already uses a password. Sign in with email and password.","auth/unauthorized-domain":"This website is not allowed yet in Firebase (Authorized domains)."})[c]||("Sign-in problem: "+(c||"unknown"));
+    "auth/account-exists-with-different-credential":"This email already uses a password. Sign in with email and password.","auth/admin-restricted-operation":"New accounts are turned off for this app. Sign in with your existing account.","auth/operation-not-allowed":"This sign-in method is turned off in Firebase.","auth/unauthorized-domain":"This website is not allowed yet in Firebase (Authorized domains)."})[c]||("Sign-in problem: "+(c||"unknown"));
 }
 function accountCard(){
   if(!fbReady) return `<section class="card" id="sync-card"><div class="section-head"><h2>Sync phone and laptop</h2></div>
@@ -935,7 +942,7 @@ document.addEventListener("click",async e=>{
   else if(a==="resetpw"){ const em=(document.getElementById("acc-email")||{}).value; if(!em){ authMsg="Type your email first, then tap Forgot password."; render(); return; }
     auth.sendPasswordResetEmail(em.trim()).then(()=>{authMsg="Password reset email sent. Check your inbox.";render();}).catch(err=>{authMsg=authError(err);render();}); }
   else if(a==="signout"){ await auth.signOut(); authMsg=""; toast("Signed out. Your plan stays on this device."); }
-  else if(a==="signoutwipe"){ await auth.signOut(); try{["frogpond.v2","frogpond.v1","frogpond.key"].forEach(k=>localStorage.removeItem(k));}catch(x){} cryptoKey=null; cfg.lock=false; cfg.salt=""; saveCfg(); state=normalize({}); prevSig=null; saveLocal(); render(); toast("Signed out. This device is clean."); }
+  else if(a==="signoutwipe"){ await auth.signOut(); try{["frogpond.v2","frogpond.v1","frogpond.key","frogpond.cfg","frogpond.prev","frogpond.ui"].forEach(k=>localStorage.removeItem(k));}catch(x){} cfg.key=""; ai=null; cryptoKey=null; cfg.lock=false; cfg.salt=""; saveCfg(); state=normalize({}); prevSig=null; saveLocal(); render(); toast("Signed out. This device is clean."); }
   else if(a==="lockoff"){ cfg.lock=false; saveCfg(); cryptoKey=null; try{localStorage.removeItem("frogpond.key")}catch(x){} pushNow(); render(); toast("Extra lock off."); }
 });
 document.addEventListener("submit",async e=>{

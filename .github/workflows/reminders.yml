@@ -8,9 +8,12 @@ on:
     - cron: "0 11 * * *"
     - cron: "0 1 * * *"
   workflow_dispatch:
+permissions: {}   # least privilege: this job needs no repo access
+
 jobs:
   remind:
     runs-on: ubuntu-latest
+    timeout-minutes: 2
     steps:
       - name: Send Telegram reminder
         env:
