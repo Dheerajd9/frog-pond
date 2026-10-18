@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2f8f4e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Frog Pond">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="description" content="Eat That Frog daily planner: pick your frog, ABCDE lists, goals and the 21 rules.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Frog Pond Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+/* Layout: one-column pond app with a fixed bottom tab bar; big touch targets so a child can use it */
+:root{
+  --bg:#eef5ec; --surface:#ffffff; --surface2:#e2eee0; --fg:#1d2b1f; --muted:#5d7262;
+  --lily:#2f8f4e; --lily-ink:#ffffff; --lily-soft:#d6ecda; --sun:#f6c445; --sun-ink:#3a2c00;
+  --pond:#2d6f8f; --line:#cbdccb; --overlay:rgba(15,30,20,.6);
+  --a:#d9473b; --b:#e68a1f; --c:#3a8fc2; --d:#8a63c4; --e:#7d8a80;
+  --display:"Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:16px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1a13; --surface:#18261c; --surface2:#213428; --fg:#e4efe4; --muted:#9db3a2;
+  --lily:#4cbb6c; --lily-ink:#062010; --lily-soft:#1d3a26; --sun:#f6c445; --sun-ink:#2a2000;
+  --pond:#6db3d3; --line:#2e4535; --overlay:rgba(0,0,0,.7);
+  --a:#e85c50; --b:#e3953a; --c:#4a9fd3; --d:#9d7ae0; --e:#7b8a7f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1a13; --surface:#18261c; --surface2:#213428; --fg:#e4efe4; --muted:#9db3a2;
+  --lily:#4cbb6c; --lily-ink:#062010; --lily-soft:#1d3a26; --sun:#f6c445; --sun-ink:#2a2000;
+  --pond:#6db3d3; --line:#2e4535; --overlay:rgba(0,0,0,.7);
+  --a:#e85c50; --b:#e3953a; --c:#4a9fd3; --d:#9d7ae0; --e:#7b8a7f; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--body);font-size:16px;line-height:1.5;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:100px}
+.wrap{max-width:720px;margin:0 auto;padding-block:18px;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;margin:0;text-wrap:balance}
+h1{font-size:1.9rem;font-weight:800}
+h2{font-size:1.35rem;font-weight:800}
+h3{font-size:1.08rem;font-weight:700}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+.src{font-size:.75rem;color:var(--muted);font-weight:700;letter-spacing:.03em}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.55;cursor:default}
+:focus-visible{outline:3px solid var(--pond);outline-offset:2px;border-radius:8px}
+
+header.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header.top .who{flex:1 1 220px;min-width:0}
+.sync{font-size:.75rem;padding:4px 10px;border-radius:99px;background:var(--surface2);color:var(--muted);white-space:nowrap}
+.sync.ok{color:var(--lily)}
+.talk{border:none;background:var(--surface2);border-radius:99px;padding:6px 14px;font-family:var(--display);font-weight:800;color:var(--lily);font-size:1rem}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.banner{background:var(--sun);color:var(--sun-ink);border-radius:var(--r);padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.banner p{flex:1;min-width:200px;font-weight:700}
+.banner .btn{background:var(--surface);color:var(--fg)}
+
+/* frog hero */
+.frog-card{background:var(--lily-soft);border:2px solid var(--lily);border-radius:22px;padding:18px;display:grid;grid-template-columns:96px 1fr;gap:16px;align-items:center}
+.frog-card .txt{min-width:0;display:flex;flex-direction:column;gap:8px}
+.frog-card .label{font-family:var(--display);font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:.8rem;color:var(--lily)}
+.frog-card .task{font-family:var(--display);font-size:1.5rem;font-weight:800;line-height:1.2;overflow-wrap:anywhere}
+.frog-card.eaten{border-color:var(--sun)}
+.frog-card.eaten .task{text-decoration:line-through;opacity:.75}
+.frogsvg{width:96px;height:96px}
+@media (max-width:420px){.frog-card{grid-template-columns:60px 1fr;padding:14px}.frogsvg{width:60px;height:60px}.frog-card .task{font-size:1.25rem}}
+.need{font-size:.88rem;background:var(--surface);border-radius:10px;padding:6px 10px;overflow-wrap:anywhere}
+
+.btn{border:none;border-radius:14px;padding:12px 16px;font-weight:800;background:var(--surface2);min-height:46px}
+.btn.primary{background:var(--lily);color:var(--lily-ink)}
+.btn.sun{background:var(--sun);color:var(--sun-ink)}
+.btn.ghost{background:transparent;border:1px solid var(--line)}
+.btn.tiny{min-height:34px;padding:6px 10px;font-size:.85rem;border-radius:10px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+.add{display:flex;gap:8px}
+.add input{flex:1;min-width:0}
+input.in,textarea.in,select.in,.add input{border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 12px;width:100%}
+.add input:focus,input.in:focus,textarea.in:focus{border-color:var(--lily);outline:none}
+textarea.in{resize:vertical;min-height:64px}
+label.f{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:.9rem}
+
+ul.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+li.t{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
+li.t.done .txt{text-decoration:line-through;color:var(--muted)}
+li.t .txt{min-width:0;overflow-wrap:anywhere;font-weight:700}
+li.t .sub{font-weight:400;font-size:.8rem;color:var(--muted);text-decoration:none}
+.check{width:34px;height:34px;border-radius:50%;border:3px solid var(--lily);background:transparent;display:grid;place-items:center;padding:0;flex:none}
+.check.on{background:var(--lily)}
+.check.on::after{content:"";width:12px;height:7px;border-left:3px solid var(--lily-ink);border-bottom:3px solid var(--lily-ink);transform:rotate(-45deg) translate(1px,-1px)}
+.letter{min-width:40px;height:34px;border-radius:10px;border:none;font-family:var(--display);font-weight:800;font-size:1rem;color:#fff;background:var(--e);padding:0 6px}
+.letter[data-l="A"]{background:var(--a)}.letter[data-l="B"]{background:var(--b)}.letter[data-l="C"]{background:var(--c)}.letter[data-l="D"]{background:var(--d)}.letter[data-l=""]{background:var(--surface2);color:var(--muted);border:2px dashed var(--line)}
+.more{border:none;background:transparent;font-size:1.3rem;line-height:1;min-width:34px;height:34px;border-radius:10px;color:var(--muted)}
+.chip{display:inline-block;font-size:.7rem;font-weight:800;padding:1px 7px;border-radius:99px;background:var(--surface2);color:var(--muted);letter-spacing:.04em;text-transform:uppercase;vertical-align:middle;text-decoration:none}
+.chip.frog{background:var(--lily);color:var(--lily-ink)}
+.chip.late{background:var(--a);color:#fff}
+.menu{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;padding-top:8px;border-top:1px dashed var(--line)}
+.panel{grid-column:1/-1;display:flex;flex-direction:column;gap:8px}
+.empty{padding:16px;border:2px dashed var(--line);border-radius:14px;text-align:center;color:var(--muted)}
+
+.legend{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.legend div{border-radius:12px;padding:8px 4px;text-align:center;font-size:.76rem;line-height:1.25;background:var(--surface2)}
+.legend b{display:block;font-family:var(--display);font-size:1.25rem;color:#fff;border-radius:8px;margin-bottom:4px}
+@media (max-width:460px){.legend div{font-size:.66rem;padding:6px 2px}}
+
+.days21{display:grid;grid-template-columns:repeat(21,1fr);gap:3px}
+.days21 i{aspect-ratio:1;border-radius:50%;background:var(--surface2);display:block}
+.days21 i.on{background:var(--lily)}
+@media (max-width:460px){.days21{grid-template-columns:repeat(11,1fr)}}
+.stats{display:flex;gap:10px;flex-wrap:wrap}
+.stat{flex:1;min-width:110px;background:var(--surface2);border-radius:14px;padding:10px 14px}
+.stat .n{font-family:var(--display);font-size:1.7rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+
+.habits{display:flex;flex-direction:column;gap:8px}
+.habit{display:flex;gap:12px;align-items:center}
+.habit span{flex:1;min-width:0}
+.habit .check{width:30px;height:30px;border-width:2px}
+
+.seg{display:flex;gap:4px;background:var(--surface2);padding:5px;border-radius:14px;overflow-x:auto}
+.seg button{flex:1;border:none;background:transparent;border-radius:10px;padding:8px 10px;font-weight:800;white-space:nowrap;color:var(--muted)}
+.seg button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.85rem;color:var(--muted)}
+.flow b{color:var(--fg)}
+
+.goal{border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;background:var(--surface)}
+.goal.major{border:2px solid var(--lily);background:var(--lily-soft)}
+.goal .gt{font-family:var(--display);font-size:1.15rem;font-weight:800;overflow-wrap:anywhere;flex:1;min-width:0}
+.goal-head{display:flex;gap:8px;align-items:center}
+.star{border:none;background:transparent;font-size:1.4rem;line-height:1;width:36px;height:36px;border-radius:10px;color:var(--muted)}
+.star.on{color:var(--b)}
+.bar{height:10px;border-radius:99px;background:var(--surface2);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--lily);border-radius:99px}
+.mini{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.mini li{display:flex;gap:8px;align-items:center}
+.mini li .check{width:28px;height:28px;border-width:2px}
+.mini li span{min-width:0;overflow-wrap:anywhere;flex:1}
+.mini li.done span{text-decoration:line-through;color:var(--muted)}
+.mini li.next span{font-weight:800}
+.barrel{font-size:.8rem;font-weight:800;color:var(--sun-ink);background:var(--sun);border-radius:99px;padding:1px 8px;white-space:nowrap}
+
+.kra{display:flex;flex-direction:column;gap:10px}
+.kra-row{display:grid;grid-template-columns:minmax(0,1fr) 140px 30px 30px;gap:8px;align-items:center}
+.kra-row input[type=range]{width:100%;accent-color:var(--lily)}
+.kra-row .score{font-family:var(--display);font-weight:800;font-size:1.2rem;text-align:right;font-variant-numeric:tabular-nums}
+.kra-row.low .score{color:var(--a)}
+@media (max-width:420px){.kra-row{grid-template-columns:minmax(0,1fr) 96px 26px 28px}}
+
+.rule-today{background:var(--sun);color:var(--sun-ink);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:8px}
+.rule-today .k{font-weight:800;text-transform:uppercase;letter-spacing:.08em;font-size:.75rem}
+.rule-today h2{font-size:1.6rem}
+.rules{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.rule{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.rule .num{font-family:var(--display);font-weight:800;color:var(--lily);font-size:.9rem;font-variant-numeric:tabular-nums}
+.rule p{font-size:.9rem}
+.rule .do{font-size:.85rem;color:var(--muted);border-top:1px dashed var(--line);padding-top:6px}
+.rule .do b{color:var(--lily)}
+
+details.card summary{cursor:pointer;font-weight:800;font-family:var(--display);font-size:1.1rem}
+details.card[open] summary{margin-bottom:4px}
+ol.steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px}
+ul.qs{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);z-index:5}
+nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);max-width:720px;width:100%}
+nav.tabs button{border:none;background:transparent;padding:9px 2px 11px;display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:800;font-size:.75rem;color:var(--muted)}
+nav.tabs button svg{width:25px;height:25px}
+nav.tabs button[aria-selected="true"]{color:var(--lily)}
+
+.overlay{position:fixed;inset:0;display:grid;place-items:center;background:var(--overlay);z-index:20;padding:max(20px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.overlay .box{background:var(--surface);border-radius:24px;padding:24px;width:100%;max-width:420px;max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:12px;align-items:stretch;animation:pop .4s ease-out}
+.overlay .box.center{align-items:center;text-align:center}
+.overlay .frogsvg{width:110px;height:110px;animation:hop 1s ease-in-out infinite}
+.clock{font-family:var(--display);font-weight:800;font-size:4.2rem;line-height:1;text-align:center;font-variant-numeric:tabular-nums;color:var(--lily)}
+.focus-task{font-family:var(--display);font-size:1.3rem;font-weight:800;text-align:center;overflow-wrap:anywhere}
+.pick{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.pick button{text-align:left;line-height:1.25}
+.pick button small{display:block;font-weight:600;font-size:.75rem;opacity:.8}
+.prep{display:flex;flex-direction:column;gap:6px}
+@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+@media (prefers-reduced-motion:reduce){.overlay .box,.overlay .frogsvg{animation:none}}
+.toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;z-index:30;max-width:90vw;text-align:center}
+html,body{margin:0}
+:root{padding-top:env(safe-area-inset-top,0px)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="frog" viewBox="0 0 100 100">
+    <ellipse cx="50" cy="62" rx="40" ry="30" fill="#3fa45f"/>
+    <ellipse cx="50" cy="70" rx="26" ry="16" fill="#bfe6a8"/>
+    <circle cx="30" cy="34" r="15" fill="#3fa45f"/><circle cx="70" cy="34" r="15" fill="#3fa45f"/>
+    <circle cx="30" cy="33" r="9" fill="#fff"/><circle cx="70" cy="33" r="9" fill="#fff"/>
+    <circle cx="32" cy="34" r="4.5" fill="#1d2b1f"/><circle cx="68" cy="34" r="4.5" fill="#1d2b1f"/>
+    <path d="M33 56 Q50 68 67 56" stroke="#1d2b1f" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <circle cx="24" cy="54" r="4" fill="#f59a8f" opacity=".8"/><circle cx="76" cy="54" r="4" fill="#f59a8f" opacity=".8"/>
+  </symbol>
+  <symbol id="frogfull" viewBox="0 0 100 100">
+    <ellipse cx="50" cy="62" rx="40" ry="30" fill="#3fa45f"/>
+    <ellipse cx="50" cy="70" rx="26" ry="16" fill="#bfe6a8"/>
+    <circle cx="30" cy="34" r="15" fill="#3fa45f"/><circle cx="70" cy="34" r="15" fill="#3fa45f"/>
+    <path d="M22 35 Q30 28 38 35" stroke="#1d2b1f" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M62 35 Q70 28 78 35" stroke="#1d2b1f" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="M30 54 Q50 78 70 54 Z" fill="#1d2b1f"/><path d="M40 62 Q50 70 60 62" fill="#e8706a"/>
+  </symbol>
+</svg>
+
+<div class="wrap" id="app"></div>
+<div id="layer"></div>
+
+<nav class="tabs" aria-label="Sections"><div class="in">
+  <button data-tab="today" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M8 7.5a2.2 2.2 0 1 1 3-2M16 7.5a2.2 2.2 0 1 0-3-2M9 15c1.6 1.4 4.4 1.4 6 0"/></svg>Today</button>
+  <button data-tab="lists" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.3"/><circle cx="4.5" cy="12" r="1.3"/><circle cx="4.5" cy="18" r="1.3"/></svg>Lists</button>
+  <button data-tab="goals" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>Goals</button>
+  <button data-tab="me" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>Me</button>
+  <button data-tab="rules" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5zM20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg>21 Rules</button>
+</div></nav>
+
+<script>
+(function(){
+"use strict";
+// ================= BOOK CONTENT (Eat That Frog!, Brian Tracy — retold simply) =================
+// [title, what the book says (simple), what to do now (the chapter's "Eat That Frog!" exercise), where it lives in the app]
+const RULES=[
+ ["Set the table","Decide exactly what you want. Clear goals beat everything. Only about 3 in 100 people write their goals, and they get 5 to 10 times more done.","Write 10 goals for next year as if they are already true. Star the one that would change your life most.","goals"],
+ ["Plan every day in advance","Think on paper. Every minute you plan saves up to 10 minutes of doing. 10 to 12 minutes of planning saves about 2 hours a day.","Make tomorrow's list tonight. Keep a big list, a month list, a week list and a day list.","lists"],
+ ["Use the 80/20 rule on everything","2 jobs out of 10 are worth more than the other 8 together. Don't clear up small things first.","Before each job ask: is this in my top 20%?","today"],
+ ["Think about what happens next","Important jobs have big results later, good or bad. Winners do what reaches the goal, not what feels easy now.","Ask: which one job, done really well, would help my life the most?","today"],
+ ["Practice ABCDE every day","A = must do (big results). B = should do (small results, a tadpole). C = nice to do. D = give to someone. E = throw away. Number your A jobs A-1, A-2, A-3. A-1 is your frog.","Put a letter on every job before you start. Never do a B while an A is waiting.","today"],
+ ["Focus on key result areas","Every job has 5 to 7 things you must be good at. Your weakest one sets how high you can go.","Score each area 1 to 10. Find the one skill that would help you most.","me"],
+ ["Law of forced efficiency","There is never time for everything, but always time for the most important thing.","Ask the 3 questions: What are my highest-value jobs? What can only I do that makes a real difference? What is the best use of my time right now?","today"],
+ ["Prepare well before you begin","Have everything ready before you start: papers, tools, passwords. Clear your desk. Sit up straight and say \"Let's get to work!\"","Clean your desk and lay out everything for tomorrow's frog.","today"],
+ ["Do your homework","The better you get at a job, the faster you start and finish it. Keep learning all your life.","Read or learn in your field for about 1 hour every day.","today"],
+ ["Use your special talents","You enjoy most the things you can be best at. Put your heart into those few things.","Answer: What am I really good at? What do I enjoy most? What made me successful before?","me"],
+ ["Find your key blocker","One thing always sets your speed. Most blockers (about 80%) are inside you, not outside.","For your big goal ask: what is holding me back? Then do something about it today.","goals"],
+ ["One oil barrel at a time","Crossing the desert, you only need to drive to the next barrel you can see. Go as far as you can see; then you will see further.","Pick a job you keep putting off and do just the next step now.","goals"],
+ ["Put pressure on yourself","No one is coming to push you. Act as if you must leave town for a month tomorrow.","Give every job a deadline and beat it.","lists"],
+ ["Look after your energy","Rested, you do 2 to 5 times more. Sleep early, eat well, move, and take one full day off each week.","Answer the 4 energy questions and act on them today.","me"],
+ ["Cheer yourself on","How you talk to yourself decides most of how you feel. Look for the good, the lesson, and the solution.","Say: \"I like myself! I can do it! I feel terrific!\"","today"],
+ ["Put off small things on purpose","You can't do everything, so choose what NOT to do. Say \"No\" often.","Ask: if I weren't doing this already, would I start it today? If not, stop it.","lists"],
+ ["Do the hardest job first","Each morning start with your A-1 job before anything else. Do it for 21 days and it becomes a habit.","Just for today: plan, prepare and start your hardest job first.","today"],
+ ["Slice and dice the job","Salami slice: cut the job into thin pieces and do one. Swiss cheese: work on it for just 5 or 10 minutes.","Slice a big job you have been avoiding, or Swiss-cheese it for 10 minutes.","today"],
+ ["Make big chunks of time","Big work needs 30, 60 or 90 minutes with no phone and no breaks. Make appointments with yourself.","Book one focus block today and keep it.","today"],
+ ["Feel the hurry","Move fast. Say \"Do it now! Do it now!\" Fast action builds momentum and a good name.","Pick one area where you delay and act fast in it from now on.","today"],
+ ["Finish what you start","Once you start, keep going until it is 100% done. Stopping and starting can make a job take up to 5 times longer.","When you want to stop, say \"Back to work!\"","today"]
+];
+const LETTERS=["A","B","C","D","E",""];
+const LETTER_INFO={A:"A = must do. Big results.",B:"B = should do. A tadpole.",C:"C = nice to do. No real results.",D:"D = give it to someone else.",E:"E = throw it away.","":"No letter yet. Tap to choose."};
+const LISTS=[
+  {id:"master",name:"Big list",hint:"Everything you might want to do some day. Catch every idea here and sort it later."},
+  {id:"month",name:"Month",hint:"Make this at the end of each month for the month ahead. Pull jobs from the big list."},
+  {id:"week",name:"Week",hint:"Plan the whole week before it starts. Add to it as the week goes."},
+  {id:"day",name:"Today",hint:"Make it the night before. Undone jobs carry over to the next day."},
+  {id:"no",name:"Not doing",hint:"Creative procrastination: jobs you decided NOT to do now, maybe never. Saying no makes room for frogs."}
+];
+const NEXT={master:"month",month:"week",week:"day"};
+const TALK=["I like myself!","I can do it!","I feel terrific!","Do it now!","Back to work!","Just for today!"];
+const QUESTIONS={
+  talents:[["good","What am I really good at?"],["enjoy","What do I enjoy most about my work?"],["success","What has made me successful so far?"],["dream","If I could do any job at all, what would it be?"]],
+  energy:[["more","What am I doing for my body that I should do more of?"],["less","What should I do less of?"],["start","What should I start doing to be at my best?"],["stop","What should I stop doing altogether?"]]
+};
+const HABITS=[
+  ["goal","Did one thing for my big goal","Rule 1, step 7"],
+  ["learn","Learned in my field (aim: 1 hour)","Rule 9"],
+  ["move","Moved my body","Rule 14"],
+  ["bed","In bed by 10 pm","Rule 14"],
+  ["plan","Made tomorrow's list","Rule 2"]
+];
+const PLAN_STEPS=[
+  ["carry","Undone jobs stay for tomorrow. Clear the finished ones.","clear"],
+  ["add","Write down everything for tomorrow on Today's list.",""],
+  ["letters","Put A, B, C, D or E on every job.",""],
+  ["order","Put the A jobs in order. A-1 is your frog. Ask: what happens if I do it, or don't?",""],
+  ["ready","Write what you need for the frog, lay it out and clear your desk.",""],
+  ["sleep","Go to bed early. Your mind works on the list while you sleep.",""]
+];
+
+// ================= STATE =================
+const KEY="frogpond.v2";
+let state=null, docRef=null, syncMode="local", saveTimer=null, saving=false, saveAgain=false, lastWritten="", ai=null;
+let ui={tab:"today",list:"day",open:null,panel:null,goalForm:false,talk:0};
+try{const t=localStorage.getItem("frogpond.ui"); if(t){const o=JSON.parse(t); ui.tab=o.tab||"today"; ui.list=o.list||"day";}}catch(e){}
+
+const uidGen=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+const dkey=(d)=>{d=d||new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const esc=(s)=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const clip=(s,n)=>String(s).trim().slice(0,n||200);
+
+function examples(){
+  const T=(text,list,letter,rank,extra)=>Object.assign({id:uidGen(),text,list,letter,rank,done:false,created:Date.now(),ex:true,slices:[],need:"",due:""},extra||{});
+  return {v:2,created:Date.now(),
+    tasks:[
+      T("Finish the hardest report","day","A",1,{need:"Laptop, last month's numbers, quiet room",slices:[{id:uidGen(),text:"Open the file and write the title",done:false},{id:uidGen(),text:"Write the first section",done:false},{id:uidGen(),text:"Check numbers and send",done:false}]}),
+      T("Study 1 hour for my certificate","day","A",2),
+      T("Call mom and dad","day","B",0),
+      T("Reply to emails","day","C",0),
+      T("Plan this week's meals","week","B",0),
+      T("Plan the month budget","month","A",1),
+      T("Learn to cook three new dishes","master","",0),
+      T("Scrolling social media in the morning","no","E",0)
+    ],
+    goals:[{id:uidGen(),text:"I read 12 books this year",deadline:"",major:true,ex:true,blocker:"I scroll my phone at night instead of reading",steps:[{id:uidGen(),text:"Pick the first book",done:true},{id:uidGen(),text:"Read 20 pages every night",done:false},{id:uidGen(),text:"Keep the phone outside the bedroom",done:false}]},
+           {id:uidGen(),text:"I run 5 km without stopping",deadline:"",major:false,ex:true,blocker:"",steps:[]}],
+    kra:[{id:uidGen(),name:"Planning my day",score:6},{id:uidGen(),name:"Health and energy",score:5},{id:uidGen(),name:"Key work skill",score:7}],
+    frogLog:{}, habits:{}, plan:{}, answers:{}, oneSkill:"", bestTime:"morning", dayOff:"Sunday"};
+}
+function normalize(s){
+  s=s&&typeof s==="object"?s:{};
+  const tasks=Array.isArray(s.tasks)?s.tasks.map(t=>({id:t.id||uidGen(),text:String(t.text||""),list:t.list||"master",letter:t.letter||"",rank:t.rank||(t.frog?1:0),done:!!t.done,doneAt:t.doneAt||null,created:t.created||Date.now(),ex:!!t.ex,slices:Array.isArray(t.slices)?t.slices:[],need:t.need||"",due:t.due||""})):[];
+  const goals=Array.isArray(s.goals)?s.goals.map((g,i)=>({id:g.id||uidGen(),text:String(g.text||""),deadline:g.deadline||"",major:g.major!=null?!!g.major:i===0,ex:!!g.ex,blocker:g.blocker||"",steps:Array.isArray(g.steps)?g.steps:[]})):[];
+  const o={v:2,created:s.created||Date.now(),tasks,goals,kra:Array.isArray(s.kra)?s.kra:[],frogLog:s.frogLog&&typeof s.frogLog==="object"?s.frogLog:{},
+    habits:s.habits&&typeof s.habits==="object"?s.habits:{},plan:s.plan&&typeof s.plan==="object"?s.plan:{},answers:s.answers&&typeof s.answers==="object"?s.answers:{},
+    oneSkill:s.oneSkill||"",bestTime:s.bestTime||"morning",dayOff:s.dayOff||"Sunday"};
+  // old v1 frogLog stored `true`; keep it as a count
+  fixRanks(o); return o;
+}
+function fixRanks(st){ ["master","month","week","day","no"].forEach(l=>{ const a=(st||state).tasks.filter(t=>t.list===l&&t.letter==="A"&&!t.done).sort((x,y)=>(x.rank||99)-(y.rank||99)||x.created-y.created); a.forEach((t,i)=>t.rank=i+1); }); }
+function loadLocal(){try{const t=localStorage.getItem(KEY)||localStorage.getItem("frogpond.v1");return t?normalize(JSON.parse(t)):null}catch(e){return null}}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+function saveUI(){try{localStorage.setItem("frogpond.ui",JSON.stringify({tab:ui.tab,list:ui.list}))}catch(e){}}
+
+function prune(){
+  const cut=Date.now()-45*864e5, old=dkey(new Date(Date.now()-120*864e5));
+  state.tasks=state.tasks.filter(t=>!t.done||!t.doneAt||t.doneAt>cut);
+  ["habits","plan"].forEach(k=>Object.keys(state[k]).forEach(d=>{if(d<old) delete state[k][d]}));
+}
+function commit(){ fixRanks(); prune(); saveLocal(); render(); scheduleSave(); }
+function quietCommit(){ saveLocal(); scheduleSave(); }
+function scheduleSave(){ if(!docRef) return; clearTimeout(saveTimer); saveTimer=setTimeout(flush,700); }
+async function flush(){
+  if(!docRef) return;
+  if(saving){saveAgain=true;return}
+  const body=JSON.stringify(state); if(body===lastWritten) return;
+  saving=true; setSync("saving");
+  try{ await docRef.set(JSON.parse(body)); lastWritten=body; setSync("cloud"); }
+  catch(e){ if(e&&e.code==="unavailable"){ setTimeout(flush,1500+Math.random()*1500); } else { syncMode="local"; docRef=null; setSync("local"); } }
+  saving=false; if(saveAgain){saveAgain=false;flush();}
+}
+function setSync(m){ if(m!=="saving") syncMode=m; const el=document.getElementById("sync"); if(!el) return;
+  el.className="sync"+(m==="cloud"?" ok":"");
+  el.textContent="Saved on this device";
+}
+
+// ================= HELPERS =================
+const byId=id=>state.tasks.find(t=>t.id===id);
+const goalById=id=>state.goals.find(g=>g.id===id);
+const order={A:0,B:1,C:2,D:3,E:4,"":5};
+function sorted(list){return state.tasks.filter(t=>t.list===list).sort((a,b)=>(a.done-b.done)||(order[a.letter||""]-order[b.letter||""])||((a.rank||0)-(b.rank||0))||(a.created-b.created))}
+function a1(){return state.tasks.filter(t=>t.list==="day"&&t.letter==="A"&&!t.done).sort((a,b)=>a.rank-b.rank)[0]}
+function streak(){let n=0;const d=new Date();if(!state.frogLog[dkey(d)]) d.setDate(d.getDate()-1);while(state.frogLog[dkey(d)]){n++;d.setDate(d.getDate()-1)}return n}
+function todayHabits(){const k=dkey();return state.habits[k]||(state.habits[k]={})}
+function majorGoal(){return state.goals.find(g=>g.major)}
+function nextBarrel(g){return g&&g.steps.find(s=>!s.done)}
+function toast(msg){const old=document.querySelector(".toast");if(old)old.remove();const t=document.createElement("div");t.className="toast";t.setAttribute("role","status");t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
+function letterLabel(t){return t.letter==="A"&&!t.done&&t.rank?"A-"+t.rank:(t.letter||"?")}
+
+// ================= RENDER: shared rows =================
+function taskRow(t){
+  const open=ui.open===t.id; const sl=t.slices||[]; const slDone=sl.filter(s=>s.done).length;
+  const late=t.due&&!t.done&&t.due<dkey();
+  const aCount=state.tasks.filter(x=>x.list===t.list&&x.letter==="A"&&!x.done).length;
+  let extra="";
+  if(open){
+    extra=`<div class="menu">
+      ${t.letter==="A"&&!t.done&&aCount>1?`<button class="btn tiny" data-act="up" data-id="${t.id}" ${t.rank===1?"disabled":""}>Move up</button><button class="btn tiny" data-act="down" data-id="${t.id}" ${t.rank===aCount?"disabled":""}>Move down</button>`:""}
+      ${NEXT[t.list]?`<button class="btn tiny" data-act="move" data-to="${NEXT[t.list]}" data-id="${t.id}">To ${LISTS.find(l=>l.id===NEXT[t.list]).name.toLowerCase()} list</button>`:""}
+      ${t.list==="day"?`<button class="btn tiny" data-act="move" data-to="week" data-id="${t.id}">Not today</button>`:""}
+      ${t.list!=="no"?`<button class="btn tiny" data-act="move" data-to="no" data-id="${t.id}">Not doing</button>`:`<button class="btn tiny" data-act="move" data-to="master" data-id="${t.id}">Back to big list</button>`}
+      <button class="btn tiny" data-act="panel" data-p="slice" data-id="${t.id}">Slice it</button>
+      ${true?`<button class="btn tiny sun" data-act="aislice" data-id="${t.id}">AI: slice it for me</button>`:""}
+      <button class="btn tiny" data-act="focus" data-id="${t.id}">Start timer</button>
+      <button class="btn tiny" data-act="panel" data-p="edit" data-id="${t.id}">Deadline & get ready</button>
+      <button class="btn tiny ghost" data-act="del" data-id="${t.id}">Delete</button>
+    </div>`;
+    if(sl.length) extra+=`<ul class="mini panel">${sl.map(s=>`<li class="${s.done?"done":""}"><button class="check ${s.done?"on":""}" aria-label="Slice done: ${esc(s.text)}" data-act="slicedone" data-id="${t.id}" data-s="${s.id}"></button><span>${esc(s.text)}</span><button class="more" aria-label="Remove slice" data-act="slicedel" data-id="${t.id}" data-s="${s.id}">×</button></li>`).join("")}</ul>`;
+    if(ui.panel==="slice") extra+=`<form class="add panel" data-form="slice" data-id="${t.id}"><input id="slice-in" placeholder="One thin slice (5 to 25 minutes)…" autocomplete="off" aria-label="New slice"><button class="btn primary">Add</button></form>`;
+    if(ui.panel==="edit") extra+=`<form class="panel" data-form="edit" data-id="${t.id}">
+      <label class="f">Deadline (Rule 13: give every job one)<input class="in" type="date" id="due-in" value="${esc(t.due)}"></label>
+      <label class="f">Things I need ready before I start (Rule 8)<input class="in" id="need-in" value="${esc(t.need)}" placeholder="Laptop, notes, water…"></label>
+      <button class="btn primary">Save</button></form>`;
+  }
+  return `<li class="t ${t.done?"done":""}">
+    <button class="check ${t.done?"on":""}" aria-label="${t.done?"Undo":"Done"}: ${esc(t.text)}" data-act="done" data-id="${t.id}"></button>
+    <button class="letter" data-l="${t.letter||""}" aria-label="${LETTER_INFO[t.letter||""]} Tap to change." title="${LETTER_INFO[t.letter||""]}" data-act="letter" data-id="${t.id}">${letterLabel(t)}</button>
+    <div class="txt">${t.list==="day"&&t===a1()?'<span class="chip frog">frog</span> ':""}${esc(t.text)}${t.ex?' <span class="chip">example</span>':""}${late?' <span class="chip late">late</span>':""}
+      ${(t.due||sl.length)?`<div class="sub">${t.due?"Due "+esc(t.due):""}${t.due&&sl.length?" · ":""}${sl.length?slDone+" of "+sl.length+" slices done":""}</div>`:""}</div>
+    <button class="more" aria-expanded="${open}" aria-label="More for ${esc(t.text)}" data-act="open" data-id="${t.id}">⋯</button>
+    ${extra}
+  </li>`;
+}
+
+// ================= VIEW: TODAY =================
+function viewToday(){
+  const today=dkey(), d=new Date(), hour=d.getHours();
+  const eatenId=state.frogLog[today]; const eatenTask=typeof eatenId==="string"?byId(eatenId):null;
+  const f=a1();
+  const day=sorted("day");
+  const hasEx=state.tasks.some(t=>t.ex)||state.goals.some(g=>g.ex);
+  const h=todayHabits(); const st=streak(); const total=Object.keys(state.frogLog).length;
+  const n=day.filter(t=>!t.done).length, vital=Math.max(1,Math.ceil(n*0.2));
+  const mg=majorGoal(), nb=nextBarrel(mg);
+  const dow=d.getDay(), lastDays=new Date(d.getFullYear(),d.getMonth()+1,0).getDate()-d.getDate();
+  let banner="";
+  if(lastDays<=2) banner=`<div class="banner"><p>End of the month. Make next month's list from your big list. (Rule 2)</p><button class="btn tiny" data-act="golist" data-to="month">Open month list</button></div>`;
+  else if(dow===0||dow===6) banner=`<div class="banner"><p>Weekend: plan the whole coming week now. And keep one full day with no work. (Rules 2 & 14)</p><button class="btn tiny" data-act="golist" data-to="week">Open week list</button></div>`;
+
+  let frogHtml;
+  if(eatenId){
+    frogHtml=`<div class="frog-card eaten"><svg class="frogsvg" aria-hidden="true"><use href="#frogfull"/></svg><div class="txt">
+      <div class="label">Frog eaten today. Well done!</div>
+      <div class="task">${eatenTask?esc(eatenTask.text):"Today's frog"}</div>
+      <p class="small">The worst job of the day is behind you. ${f?"Next A job: <b>"+esc(f.text)+"</b>":""}</p>
+      <div class="row">${eatenTask?`<button class="btn tiny ghost" data-act="done" data-id="${eatenTask.id}">Undo</button>`:""}${f?`<button class="btn tiny primary" data-act="focus" data-id="${f.id}">Start next A job</button>`:""}</div></div></div>`;
+  } else if(f){
+    const sl=f.slices||[]; const ns=sl.find(s=>!s.done);
+    frogHtml=`<div class="frog-card"><svg class="frogsvg" aria-hidden="true"><use href="#frog"/></svg><div class="txt">
+      <div class="label">Your frog (A-1). Eat it first</div>
+      <div class="task">${esc(f.text)}</div>
+      ${f.need?`<div class="need"><b>Have ready:</b> ${esc(f.need)}</div>`:""}
+      ${ns?`<p class="small">Next slice: <b>${esc(ns.text)}</b></p>`:""}
+      <div class="row"><button class="btn primary" data-act="focus" data-id="${f.id}">Start eating</button><button class="btn sun" data-act="done" data-id="${f.id}">I ate my frog!</button><button class="btn tiny ghost" data-act="open" data-id="${f.id}">Slice / more</button></div>
+      <p class="small muted">Don't sit and look at a frog for long. Just start. (Rule 17)</p>
+    </div></div>
+    ${ui.open===f.id?`<ul class="tasks">${taskRow(f)}</ul>`:""}`;
+  } else {
+    frogHtml=`<div class="frog-card"><svg class="frogsvg" aria-hidden="true"><use href="#frog"/></svg><div class="txt">
+      <div class="label">No frog yet</div>
+      <div class="task">Give your hardest, most important job the letter A</div>
+      <p class="small">Your frog is the job you most want to put off but that matters most. The top A job (A-1) becomes your frog.</p></div></div>`;
+  }
+
+  const days21=Math.min(st,21);
+  return `
+  <header class="top"><div class="who"><h1>Frog Pond</h1><p class="small muted">${d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})}</p></div>
+    <button class="talk" data-act="talk" aria-label="Say it to yourself, tap for another">${TALK[ui.talk%TALK.length]}</button><span id="sync" class="sync"></span></header>
+  ${banner}
+  ${frogHtml}
+
+  <section class="card">
+    <div class="section-head"><h2>21-day frog habit</h2><span class="src">Rule 17</span></div>
+    <p class="small muted">Eat your frog first thing every day for 21 days in a row and it becomes a habit.</p>
+    <div class="days21" aria-label="${days21} of 21 days">${Array.from({length:21},(_,i)=>`<i class="${i<days21?"on":""}"></i>`).join("")}</div>
+    <div class="stats"><div class="stat"><div class="n">${st}</div><div class="small muted">days in a row</div></div><div class="stat"><div class="n">${total}</div><div class="small muted">frogs eaten in all</div></div></div>
+  </section>
+
+  <section class="card">
+    <div class="section-head"><h2>Today's list</h2><span class="muted small">${day.filter(t=>t.done).length} of ${day.length} done</span></div>
+    <form class="add" data-form="add" data-list="day"><input id="add-day" placeholder="Add a job for today…" autocomplete="off" aria-label="New job for today"><button class="btn primary">Add</button></form>
+    ${n>=3?`<p class="small"><b>80/20:</b> of your ${n} jobs, about ${vital} ${vital===1?"is":"are"} worth more than all the rest. Those are your A jobs. Don't clear up small things first. <span class="src">Rule 3</span></p>`:""}
+    ${day.length?`<ul class="tasks">${day.map(taskRow).join("")}</ul>`:`<div class="empty">Nothing here yet. Add jobs above, or move some from your week list.</div>`}
+    <div class="legend" aria-label="What the letters mean">
+      <div><b style="background:var(--a)">A</b>Must do</div><div><b style="background:var(--b)">B</b>Should do</div><div><b style="background:var(--c)">C</b>Nice to do</div><div><b style="background:var(--d)">D</b>Give away</div><div><b style="background:var(--e)">E</b>Throw away</div>
+    </div>
+    <p class="small muted">Tap a letter to change it. Several A jobs? Open ⋯ and move them up or down: A-1, A-2, A-3. <span class="src">Rule 5</span></p>
+  </section>
+
+  <section class="card">
+    <div class="section-head"><h2>Daily habits</h2><span class="src">From the book</span></div>
+    <div class="habits">
+      <div class="habit"><span class="check ${eatenId?"on":""}" aria-hidden="true"></span><span><b>Ate my frog first</b> <span class="src">Rule 17</span></span></div>
+      ${HABITS.map(([k,label,src])=>`<div class="habit"><button class="check ${h[k]?"on":""}" aria-label="${esc(label)}" data-act="habit" data-k="${k}"></button><span>${label} <span class="src">${src}</span>${k==="goal"&&nb?`<br><span class="small muted">Next step: ${esc(nb.text)}</span>`:""}</span></div>`).join("")}
+    </div>
+  </section>
+
+  <details class="card" ${hour>=17?"open":""}>
+    <summary>Tonight: plan tomorrow</summary>
+    <p class="small muted">Do this at the end of each day. 10 minutes of planning saves about 2 hours tomorrow. <span class="src">Rules 2, 8, 17</span></p>
+    <div class="habits">${PLAN_STEPS.map(([k,label,act],i)=>{const done=(state.plan[today]||{})[k];return `<div class="habit"><button class="check ${done?"on":""}" aria-label="Step ${i+1} done" data-act="planstep" data-k="${k}"></button><span>${i+1}. ${label}${act==="clear"?` <button class="btn tiny" data-act="clearDone">Clear finished jobs</button>`:""}</span></div>`}).join("")}</div>
+    ${f?`<form class="row" data-form="need" data-id="${f.id}"><label class="f" style="flex:1;min-width:200px">What I need ready for my frog<input class="in" id="need-today" value="${esc(f.need)}" placeholder="Laptop, notes, water…"></label><button class="btn">Save</button></form>`:""}
+  </details>
+
+  <details class="card">
+    <summary>Feeling stuck? Ask these</summary>
+    <ul class="qs">
+      <li>What are my highest-value jobs? <span class="src">Rule 7</span></li>
+      <li>What can I, and only I, do that will make a real difference?</li>
+      <li>What is the most valuable use of my time right now?</li>
+      <li>If I had to leave town for a month tomorrow, what must I finish today? <span class="src">Rule 13</span></li>
+      <li>Is this job in my top 20%, or the bottom 80%? <span class="src">Rule 3</span></li>
+      <li>What happens if I do this, and what happens if I don't? <span class="src">Rule 4</span></li>
+    </ul>
+    <div class="row"><button class="btn sun" data-act="focus" data-id="${f?f.id:""}">Do it now: start a timer</button></div>
+  </details>
+  ${hasEx?`<div class="row"><button class="btn ghost tiny" data-act="clearex">Remove the example jobs and goals</button><span class="small muted">Items marked "example" only show how it works.</span></div>`:""}
+  `;
+}
+
+// ================= VIEW: LISTS =================
+function viewLists(){
+  const L=LISTS.find(l=>l.id===ui.list)||LISTS[3]; const items=sorted(L.id);
+  return `
+  <h1>Your lists</h1>
+  <div class="flow"><b>Big list</b> → <b>Month</b> → <b>Week</b> → <b>Today</b> <span>Always work from a list. When something new comes up, add it before you do it. <span class="src">Rule 2</span></span></div>
+  <div class="seg" role="tablist">${LISTS.map(l=>`<button role="tab" aria-selected="${l.id===L.id}" data-act="list" data-to="${l.id}">${l.name} <span class="muted">${state.tasks.filter(t=>t.list===l.id&&!t.done).length}</span></button>`).join("")}</div>
+  <section class="card">
+    <p class="muted">${L.hint}</p>
+    ${L.id==="no"?`<p class="small"><b>Ask about anything you do:</b> "If I were not doing this already, would I start it again today?" If the answer is no, put it here. <span class="src">Rule 16</span></p>`:""}
+    <form class="add" data-form="add" data-list="${L.id}"><input id="add-${L.id}" placeholder="${L.id==="no"?"Something I will stop or put off…":"Add to "+L.name.toLowerCase()+" list…"}" autocomplete="off" aria-label="New item"><button class="btn primary">Add</button></form>
+    ${items.length?`<ul class="tasks">${items.map(taskRow).join("")}</ul>`:`<div class="empty">This list is empty. Add your first item above.</div>`}
+  </section>`;
+}
+
+// ================= VIEW: GOALS =================
+function goalCard(g){
+  const done=g.steps.filter(s=>s.done).length, pct=g.steps.length?Math.round(done/g.steps.length*100):0;
+  const days=g.deadline?Math.ceil((new Date(g.deadline+"T23:59")-new Date())/864e5):null;
+  const nb=nextBarrel(g); const open=g.major||ui.open===g.id;
+  return `<div class="goal ${g.major?"major":""}">
+    <div class="goal-head"><button class="star ${g.major?"on":""}" aria-label="${g.major?"This is my major goal":"Make this my major goal"}" title="Major goal" data-act="major" data-id="${g.id}">★</button>
+      <div class="gt">${esc(g.text)}${g.ex?' <span class="chip">example</span>':""}</div>
+      ${g.major?"":`<button class="more" aria-expanded="${open}" aria-label="Open goal" data-act="open" data-id="${g.id}">⋯</button>`}
+      <button class="more" aria-label="Delete goal" data-act="delgoal" data-id="${g.id}">×</button></div>
+    ${open?`
+    ${g.major?`<p class="small"><b>Major goal.</b> Every morning do the most important task for this goal. <span class="src">Rule 1</span></p>`:""}
+    <div class="row small muted">${g.deadline?`<span>Finish by ${esc(g.deadline)} · ${days>=0?days+" days left":"date passed"}</span>`:`<span>No finish date yet</span>`}<span>${done} of ${g.steps.length} steps</span></div>
+    <div class="bar" role="img" aria-label="${pct}% done"><i style="width:${pct}%"></i></div>
+    <ul class="mini">${g.steps.map((s,i)=>`<li class="${s.done?"done":""} ${s===nb?"next":""}"><button class="check ${s.done?"on":""}" aria-label="Step done: ${esc(s.text)}" data-act="stepdone" data-id="${g.id}" data-s="${s.id}"></button><span>${esc(s.text)} ${s===nb?'<span class="barrel">next oil barrel</span>':""}</span>
+      ${!s.done?`<button class="btn tiny ghost" data-act="steptoday" data-id="${g.id}" data-s="${s.id}">To today</button>`:""}
+      <button class="more" aria-label="Move step up" data-act="stepup" data-id="${g.id}" data-s="${s.id}" ${i===0?"disabled":""}>↑</button></li>`).join("")}</ul>
+    <form class="add" data-form="step" data-id="${g.id}"><input id="step-${g.id}" placeholder="Add a step (Step 4: list everything to do)…" autocomplete="off" aria-label="New step"><button class="btn">Add</button></form>
+    ${true?`<div class="row"><button class="btn tiny sun" data-act="aisteps" data-id="${g.id}">AI: list the steps for me</button></div>`:""}
+    <form class="row" data-form="goalmeta" data-id="${g.id}">
+      <label class="f" style="flex:1;min-width:150px">Finish date (Step 3)<input class="in" type="date" id="gd-${g.id}" value="${esc(g.deadline)}"></label>
+      <label class="f" style="flex:2;min-width:200px">What is holding me back? (Rule 11)<input class="in" id="gb-${g.id}" value="${esc(g.blocker)}" placeholder="The one thing that sets my speed…"></label>
+      <button class="btn" style="align-self:flex-end">Save</button></form>
+    `:""}
+  </div>`;
+}
+function viewGoals(){
+  const goals=[...state.goals].sort((a,b)=>(b.major?1:0)-(a.major?1:0));
+  return `
+  <h1>Goals</h1>
+  <section class="card">
+    <div class="section-head"><h2>My 10 goals for next year</h2><span class="src">Rule 1</span></div>
+    <p class="small muted">Write each goal as if a year has passed and it is already true: "I earn…", "I weigh…", "I drive…". Then tap ★ on the ONE goal that would change your life the most.</p>
+    <form class="add" data-form="goal"><input id="g-text" placeholder="${state.goals.length>=10?"You have 10 goals. Finish or remove one first.":"I …"}" autocomplete="off" aria-label="New goal" ${state.goals.length>=10?"disabled":""}><button class="btn primary" ${state.goals.length>=10?"disabled":""}>Add</button></form>
+    <p class="small muted">${state.goals.length} of 10 goals written</p>
+    ${goals.length?goals.map(goalCard).join(""):`<div class="empty">No goals yet. Only about 3 in 100 people write their goals down. Be one of them.</div>`}
+  </section>
+  <details class="card">
+    <summary>The 7 steps to any goal</summary>
+    <ol class="steps"><li>Decide exactly what you want.</li><li>Write it down.</li><li>Set a finish date.</li><li>List everything you must do.</li><li>Put the list in order: what first, what next.</li><li>Do something on it right away.</li><li>Do something for it every single day.</li></ol>
+  </details>`;
+}
+
+// ================= VIEW: ME =================
+function viewMe(){
+  const low=[...state.kra].sort((a,b)=>a.score-b.score)[0];
+  const ans=state.answers||{};
+  const qa=(group)=>QUESTIONS[group].map(([k,q])=>`<label class="f">${q}<textarea class="in" id="q-${group}-${k}" data-ans="${group}.${k}" rows="2">${esc(ans[group+"."+k]||"")}</textarea></label>`).join("");
+  return `
+  <h1>Me</h1>
+  <section class="card">
+    <div class="section-head"><h2>Key result areas</h2><span class="src">Rule 6</span></div>
+    <p class="small muted">Most jobs have 5 to 7 results you must get. Score yourself 1 to 10 on each. Your weakest area sets how high you can go, so work on it first.</p>
+    <div class="kra">${state.kra.map(k=>{const isLow=low&&k.id===low.id&&state.kra.length>1;return `<div class="kra-row ${isLow?"low":""}">
+      <span style="min-width:0;overflow-wrap:anywhere"><b>${esc(k.name)}</b>${isLow?' <span class="chip">work on this</span>':""}</span>
+      <input type="range" min="1" max="10" value="${k.score}" id="kra-${k.id}" aria-label="Score for ${esc(k.name)}" data-kra="${k.id}">
+      <span class="score">${k.score}</span><button class="more" aria-label="Remove ${esc(k.name)}" data-act="kradel" data-id="${k.id}">×</button></div>`}).join("")}</div>
+    <form class="add" data-form="kra"><input id="kra-new" placeholder="Add an area (like Planning, Coding, Health)" autocomplete="off" aria-label="New key result area" ${state.kra.length>=7?"disabled":""}><button class="btn" ${state.kra.length>=7?"disabled":""}>Add</button></form>
+    <label class="f">The ONE skill that, if I were excellent at it, would help my career most:<input class="in" id="oneskill" data-field="oneSkill" value="${esc(state.oneSkill)}" placeholder="Ask your boss, friends and family too"></label>
+  </section>
+  <section class="card">
+    <div class="section-head"><h2>My energy</h2><span class="src">Rule 14</span></div>
+    <div class="row">
+      <label class="f" style="flex:1;min-width:150px">I do my best work in the<select class="in" id="besttime" data-field="bestTime">${["morning","afternoon","evening"].map(x=>`<option ${state.bestTime===x?"selected":""}>${x}</option>`).join("")}</select></label>
+      <label class="f" style="flex:1;min-width:150px">My full day off each week<select class="in" id="dayoff" data-field="dayOff">${["Saturday","Sunday"].map(x=>`<option ${state.dayOff===x?"selected":""}>${x}</option>`).join("")}</select></label>
+    </div>
+    <p class="small muted">Do your frog in your best ${esc(state.bestTime)} hours. Bed by 10 pm on weeknights. No work on ${esc(state.dayOff)}.</p>
+    ${qa("energy")}
+  </section>
+  <section class="card">
+    <div class="section-head"><h2>My special talents</h2><span class="src">Rule 10</span></div>
+    ${qa("talents")}
+  </section>
+  <section class="card" id="settings">
+    <div class="section-head"><h2>Settings</h2></div>
+    <h3>Free AI helper (Google Gemini)</h3>
+    <p class="small muted">Optional. It slices big jobs and lists goal steps for you. Get a free key: open aistudio.google.com, sign in with Google, tap "Get API key", copy it and paste it here. The key stays only on this device.</p>
+    <label class="f">Gemini API key<input class="in" type="password" id="gkey" value="${esc(cfg.key)}" autocomplete="off" spellcheck="false" placeholder="Paste your key"></label>
+    <label class="f">Model (leave as is)<input class="in" id="gmodel" value="${esc(cfg.model)}" spellcheck="false"></label>
+    <div class="row"><button class="btn primary" data-act="savekey">Save key</button><button class="btn" data-act="testkey">Test it</button>${cfg.key?'<button class="btn ghost tiny" data-act="delkey">Remove key</button>':""}<span class="small muted">${ai?"AI is on":"AI is off"}</span></div>
+    <h3>Use it on phone and laptop</h3>
+    <p class="small muted">Your plan saves on this device only, so it is free and private. To move it: tap "Save backup file", send the file to your other device (AirDrop, email or iCloud Drive), open the app there and tap "Load backup file".</p>
+    <div class="row"><button class="btn" data-act="export">Save backup file</button><label class="btn" for="importf" style="display:inline-flex;align-items:center;cursor:pointer">Load backup file</label><input type="file" id="importf" accept="application/json,.json" hidden></div>
+    <p class="small muted">${cfg.lastBackup?"Last backup: "+esc(cfg.lastBackup):"No backup yet. Save one every week."}</p>
+  </section>`;
+}
+
+// ================= VIEW: RULES =================
+function viewRules(){
+  const doy=Math.floor((Date.now()-new Date(new Date().getFullYear(),0,0))/864e5); const i=doy%21; const r=RULES[i];
+  return `
+  <div class="rule-today"><span class="k">Rule of the day · ${i+1} of 21</span><h2>${r[0]}</h2><p>${r[1]}</p><p><b>Do it now:</b> ${r[2]}</p></div>
+  <h2>All 21 ways to stop putting things off</h2>
+  <div class="rules">${RULES.map((x,n)=>`<div class="rule"><span class="num">Rule ${n+1}</span><h3>${x[0]}</h3><p>${x[1]}</p><p class="do"><b>Do it now:</b> ${x[2]}</p><button class="btn tiny ghost" data-act="gotab" data-to="${x[3]}">Use it in the app</button></div>`).join("")}</div>
+  <p class="small muted">Retold in simple words from Eat That Frog! by Brian Tracy. Read these again and again until they are habits.</p>`;
+}
+
+function render(){
+  const app=document.getElementById("app");
+  const active=document.activeElement&&document.activeElement.id;
+  const y=window.scrollY;
+  app.innerHTML=ui.tab==="lists"?viewLists():ui.tab==="goals"?viewGoals():ui.tab==="me"?viewMe():ui.tab==="rules"?viewRules():viewToday();
+  setSync(syncMode);
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===ui.tab)));
+  if(active){const el=document.getElementById(active); if(el&&(el.tagName==="INPUT"||el.tagName==="TEXTAREA")&&el.type!=="range"&&!el.disabled) el.focus({preventScroll:true});}
+  window.scrollTo(0,y);
+}
+
+// ================= OVERLAYS =================
+const layer=document.getElementById("layer");
+function closeLayer(){layer.innerHTML="";stopTimer();}
+function party(){
+  layer.innerHTML=`<div class="overlay" data-close="1"><div class="box center" role="dialog" aria-label="Frog eaten"><svg class="frogsvg" aria-hidden="true"><use href="#frogfull"/></svg><h2>Yum! Frog eaten!</h2><p class="muted">The hardest job is done. That is probably the worst thing that will happen to you all day.</p><p><b>${streak()}</b> day${streak()===1?"":"s"} in a row · ${Math.max(0,21-streak())} to go for the 21-day habit</p><button class="btn primary" data-close="1" id="party-ok">Yay!</button></div></div>`;
+  document.getElementById("party-ok").focus();
+}
+// Focus timer: Swiss cheese (10 min) and large chunks (30/60/90). Rules 8, 18, 19, 20, 21.
+let timer={id:null,end:0,task:null,mins:0,lock:null};
+function stopTimer(){if(timer.id)clearInterval(timer.id);timer.id=null;try{timer.lock&&timer.lock.release()}catch(e){}timer.lock=null;}
+function openFocus(taskId){
+  const t=taskId?byId(taskId):null;
+  layer.innerHTML=`<div class="overlay"><div class="box" role="dialog" aria-label="Start working">
+    <h2>${t?esc(t.text):"Pick a job and start"}</h2>
+    <div class="prep"><b>Get ready first</b> <span class="src">Rule 8</span>
+      <label class="habit"><input type="checkbox" id="p1"> <span>Desk clear. Only this job in front of me.</span></label>
+      <label class="habit"><input type="checkbox" id="p2"> <span>Everything I need is in reach${t&&t.need?": "+esc(t.need):""}.</span></label>
+      <label class="habit"><input type="checkbox" id="p3"> <span>Phone off or away. Sit up straight.</span></label>
+    </div>
+    <p class="small muted">Choose how long. Then say "Let's get to work!"</p>
+    <div class="pick">
+      <button class="btn sun" data-go="10">10 min<small>Swiss cheese: just a bite</small></button>
+      <button class="btn primary" data-go="30">30 min<small>Small chunk</small></button>
+      <button class="btn primary" data-go="60">60 min<small>Big chunk</small></button>
+      <button class="btn primary" data-go="90">90 min<small>Biggest chunk</small></button>
+    </div>
+    <button class="btn ghost" data-close="1">Cancel</button></div></div>`;
+  timer.task=taskId;
+}
+function startTimer(mins){
+  timer.mins=mins; timer.end=Date.now()+mins*60000;
+  const t=timer.task?byId(timer.task):null;
+  layer.innerHTML=`<div class="overlay"><div class="box center" role="dialog" aria-label="Focus timer">
+    <span class="src">Single handle: stay on this one job · Rule 21</span>
+    <div class="focus-task">${t?esc(t.text):"My most important job"}</div>
+    <div class="clock" id="clock" aria-live="off">${mins}:00</div>
+    <p class="muted" id="cheer">Let's get to work!</p>
+    <div class="row" style="justify-content:center">
+      <button class="btn sun" id="backbtn">I got distracted</button>
+      ${t?`<button class="btn primary" data-act="done" data-id="${t.id}" data-close="1">Finished it!</button>`:""}
+      <button class="btn ghost" data-close="1">Stop</button></div></div></div>`;
+  stopTimer();
+  try{navigator.wakeLock&&navigator.wakeLock.request("screen").then(l=>timer.lock=l).catch(()=>{})}catch(e){}
+  const tick=()=>{const left=Math.max(0,timer.end-Date.now());const m=Math.floor(left/60000),s=Math.floor(left%60000/1000);const c=document.getElementById("clock");if(!c){stopTimer();return}c.textContent=m+":"+String(s).padStart(2,"0");
+    if(left<=0){stopTimer();document.getElementById("cheer").innerHTML="<b>Time's up!</b> Feel like one more slice? Once you start, it is easier to keep going.";}};
+  tick(); timer.id=setInterval(tick,500);
+}
+
+// ================= FREE AI (Gemini) + SETTINGS =================
+let cfg={key:"",model:"gemini-2.5-flash",lastBackup:""};
+try{const c=localStorage.getItem("frogpond.cfg"); if(c) Object.assign(cfg,JSON.parse(c));}catch(e){}
+function saveCfg(){try{localStorage.setItem("frogpond.cfg",JSON.stringify(cfg))}catch(e){}}
+function makeAI(){
+  if(!cfg.key) return null;
+  return {json:async(prompt)=>{
+    if(!navigator.onLine) throw {code:"offline"};
+    let r;
+    try{ r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+encodeURIComponent(cfg.model||"gemini-2.5-flash")+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":cfg.key},
+      body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{responseMimeType:"application/json",temperature:0.4}})}); }
+    catch(e){ throw {code:"offline"}; }
+    if(!r.ok){ throw {code:r.status===429?"rate_limited":(r.status===400||r.status===401||r.status===403||r.status===404)?"bad_key":"http"}; }
+    const j=await r.json();
+    const txt=((j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts)||[]).map(p=>p.text||"").join("");
+    return JSON.parse(txt.replace(/^\s*```(json)?/,"").replace(/```\s*$/,"").trim());
+  }};
+}
+function needKey(){ ui.tab="me"; saveUI(); render(); const el=document.getElementById("settings"); if(el) el.scrollIntoView({behavior:"smooth"}); toast("Add a free Gemini key here to turn on the AI helper."); }
+function exportData(){
+  const blob=new Blob([JSON.stringify(state,null,1)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="frog-pond-backup-"+dkey()+".json"; document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);
+  cfg.lastBackup=new Date().toLocaleString(); saveCfg(); render(); toast("Backup saved. Send this file to your other device.");
+}
+document.addEventListener("change",e=>{
+  if(e.target.id!=="importf"||!e.target.files[0]) return;
+  const fr=new FileReader();
+  fr.onload=()=>{ try{ const data=JSON.parse(fr.result); if(!data||!Array.isArray(data.tasks)) throw 0;
+      try{localStorage.setItem("frogpond.prev",JSON.stringify(state))}catch(x){}
+      state=normalize(data); commit(); toast("Backup loaded. Your plan is here now."); }
+    catch(x){ toast("That file is not a Frog Pond backup."); } };
+  fr.readAsText(e.target.files[0]); e.target.value="";
+});
+
+// ================= ACTIONS =================
+function setLetter(t,l){ t.letter=l; if(l==="A"){ t.rank=state.tasks.filter(x=>x.list===t.list&&x.letter==="A"&&!x.done&&x!==t).length+1; } }
+function eatFrog(t){ if(!state.frogLog[dkey()]){ state.frogLog[dkey()]=t.id; return true; } return false; }
+
+document.addEventListener("click",e=>{
+  if(e.target.closest("[data-close]")&&!e.target.closest("[data-act]")){ if(e.target.dataset.close||e.target.closest("button[data-close]")) { closeLayer(); return; } }
+  const go=e.target.closest("[data-go]"); if(go){startTimer(+go.dataset.go);return}
+  if(e.target.id==="backbtn"){const c=document.getElementById("cheer");if(c)c.innerHTML="<b>Back to work! Back to work!</b> Pick up exactly where you stopped.";return}
+  const nb=e.target.closest("nav.tabs button"); if(nb){ui.tab=nb.dataset.tab;ui.open=null;ui.panel=null;saveUI();render();window.scrollTo(0,0);return}
+  const b=e.target.closest("[data-act]"); if(!b||!state) return;
+  const a=b.dataset.act, t=b.dataset.id?byId(b.dataset.id):null;
+  if(b.dataset.close) closeLayer();
+  switch(a){
+    case "done": {
+      if(!t) return;
+      const wasA1=t===a1();
+      if(!t.done&&(t.letter==="B"||t.letter==="C")&&t.list==="day"&&a1()){ toast("Tadpole before frog! Never do a "+t.letter+" while an A is left. (Rule 5)"); }
+      t.done=!t.done; t.doneAt=t.done?Date.now():null;
+      if(t.done&&wasA1&&eatFrog(t)){ commit(); party(); return; }
+      if(!t.done&&state.frogLog[dkey()]===t.id){ delete state.frogLog[dkey()]; t.letter="A"; t.rank=0.5; }
+      break; }
+    case "letter": { if(!t) return; const nl=LETTERS[(LETTERS.indexOf(t.letter||"")+1)%LETTERS.length]; setLetter(t,nl);
+      if(nl==="D") toast("D: give this to someone else if you can."); else if(nl==="E") toast("E: throw it away. Delete it, or put it on the Not doing list.");
+      break; }
+    case "open": ui.open=ui.open===b.dataset.id?null:b.dataset.id; ui.panel=null; render(); return;
+    case "panel": ui.panel=ui.panel===b.dataset.p?null:b.dataset.p; render(); { const el=document.getElementById(ui.panel==="slice"?"slice-in":"due-in"); if(el) el.focus(); } return;
+    case "up": case "down": { const list=state.tasks.filter(x=>x.list===t.list&&x.letter==="A"&&!x.done).sort((x,y)=>x.rank-y.rank); const i=list.indexOf(t), j=a==="up"?i-1:i+1; if(j<0||j>=list.length) return; const r=list[j].rank; list[j].rank=t.rank; t.rank=r; break; }
+    case "move": if(!t) return; t.list=b.dataset.to; if(t.letter==="A") t.rank=99; ui.open=null; toast("Moved to "+LISTS.find(l=>l.id===t.list).name); break;
+    case "del": state.tasks=state.tasks.filter(x=>x!==t); ui.open=null; break;
+    case "slicedone": { const s=t.slices.find(x=>x.id===b.dataset.s); s.done=!s.done; break; }
+    case "slicedel": t.slices=t.slices.filter(x=>x.id!==b.dataset.s); break;
+    case "focus": openFocus(b.dataset.id||null); return;
+    case "talk": ui.talk++; render(); return;
+    case "habit": { const h=todayHabits(); h[b.dataset.k]=!h[b.dataset.k]; break; }
+    case "planstep": { const p=state.plan[dkey()]||(state.plan[dkey()]={}); p[b.dataset.k]=!p[b.dataset.k]; if(b.dataset.k==="sleep"||Object.keys(p).filter(k=>p[k]).length>=5){ todayHabits().plan=true; } break; }
+    case "clearDone": { const n=state.tasks.filter(x=>x.list==="day"&&x.done).length; state.tasks=state.tasks.filter(x=>!(x.list==="day"&&x.done)); const p=state.plan[dkey()]||(state.plan[dkey()]={}); p.carry=true; toast(n?"Cleared "+n+" finished job"+(n===1?"":"s")+". Undone jobs stay for tomorrow.":"Nothing finished to clear."); break; }
+    case "list": ui.list=b.dataset.to; ui.open=null; saveUI(); render(); return;
+    case "golist": ui.tab="lists"; ui.list=b.dataset.to; saveUI(); render(); window.scrollTo(0,0); return;
+    case "gotab": ui.tab=b.dataset.to; saveUI(); render(); window.scrollTo(0,0); return;
+    case "clearex": state.tasks=state.tasks.filter(x=>!x.ex); state.goals=state.goals.filter(x=>!x.ex); break;
+    case "major": state.goals.forEach(g=>g.major=g.id===b.dataset.id); toast("Major goal set. Do something for it every day."); break;
+    case "delgoal": state.goals=state.goals.filter(g=>g.id!==b.dataset.id); break;
+    case "stepdone": { const g=goalById(b.dataset.id); const s=g.steps.find(x=>x.id===b.dataset.s); s.done=!s.done; if(s.done&&g.major) todayHabits().goal=true; break; }
+    case "stepup": { const g=goalById(b.dataset.id); const i=g.steps.findIndex(x=>x.id===b.dataset.s); if(i>0){const x=g.steps[i];g.steps[i]=g.steps[i-1];g.steps[i-1]=x;} break; }
+    case "steptoday": { const g=goalById(b.dataset.id); const s=g.steps.find(x=>x.id===b.dataset.s); const nt={id:uidGen(),text:s.text,list:"day",letter:"",rank:0,done:false,created:Date.now(),slices:[],need:"",due:""}; state.tasks.push(nt); setLetter(nt,"A"); toast("Added to today as an A job"); break; }
+    case "savekey": cfg.key=(document.getElementById("gkey").value||"").trim(); cfg.model=(document.getElementById("gmodel").value||"gemini-2.5-flash").trim(); saveCfg(); ai=makeAI(); render(); toast(ai?"Key saved. AI is on.":"Key removed."); return;
+    case "delkey": cfg.key=""; saveCfg(); ai=null; render(); toast("Key removed."); return;
+    case "testkey": { cfg.key=(document.getElementById("gkey").value||"").trim(); cfg.model=(document.getElementById("gmodel").value||"gemini-2.5-flash").trim(); saveCfg(); ai=makeAI(); if(!ai){toast("Paste a key first.");return}
+      b.disabled=true; b.textContent="Testing…"; askSteps('List 2 tiny steps to drink a glass of water.').then(st=>{ if(st) toast("It works! AI is on."); render(); }); return; }
+    case "export": exportData(); return;
+    case "kradel": state.kra=state.kra.filter(k=>k.id!==b.dataset.id); break;
+    case "aislice": { if(!t) return; if(!ai){needKey();return;} b.disabled=true; b.textContent="Thinking…";
+      askSteps(`Break this task into 3 to 6 thin "salami slices": tiny, concrete steps, each doable in 5 to 25 minutes, in the order to do them, in very simple words a child could follow (max 10 words each). Task: "${t.text}".`)
+        .then(st=>{ if(!st) return; t.slices=(t.slices||[]).concat(st.map(x=>({id:uidGen(),text:x,done:false}))); ui.open=t.id; commit(); toast("Sliced into "+st.length+" small steps"); });
+      return; }
+    case "aisteps": { const g=goalById(b.dataset.id); if(!g) return; if(!ai){needKey();return;} b.disabled=true; b.textContent="Thinking…";
+      askSteps(`A person wrote this goal: "${g.text}". Following step 4 and 5 of Brian Tracy's goal method, list 4 to 8 concrete actions they must do to reach it, in the order to do them, in very simple words (max 12 words each).`)
+        .then(st=>{ if(!st) return; g.steps=g.steps.concat(st.map(x=>({id:uidGen(),text:x,done:false}))); commit(); toast("Added "+st.length+" steps"); });
+      return; }
+    default: return;
+  }
+  commit();
+});
+function askSteps(prompt){
+  return ai.json(prompt+' Reply only with JSON: {"steps":["...","..."]}',{modelTier:"quick"})
+    .then(r=>{const st=(r&&Array.isArray(r.steps)?r.steps:[]).filter(x=>typeof x==="string"&&x.trim()).slice(0,8).map(x=>clip(x)); if(!st.length){toast("AI gave no steps. Try again.");render();return null} return st;})
+    .catch(err=>{ const c=err&&err.code; toast(c==="bad_key"?"Gemini key is not working. Check it in Me → Settings.":c==="rate_limited"?"Free AI limit reached. Try again in a minute.":c==="offline"?"No internet. AI needs internet.":"AI had a problem. Try again."); render(); return null;});
+}
+layer.addEventListener("click",e=>{ if(e.target.classList.contains("overlay")&&e.target.dataset.close) closeLayer(); });
+
+document.addEventListener("submit",e=>{
+  const f=e.target; e.preventDefault(); if(!state) return;
+  const kind=f.dataset.form; const val=(id)=>{const el=document.getElementById(id);return el?el.value:""};
+  if(kind==="add"){const i=f.querySelector("input");const v=clip(i.value);if(!v)return;state.tasks.push({id:uidGen(),text:v,list:f.dataset.list,letter:f.dataset.list==="no"?"E":"",rank:0,done:false,created:Date.now(),slices:[],need:"",due:""});i.value="";commit();}
+  else if(kind==="slice"){const t=byId(f.dataset.id);const v=clip(val("slice-in"));if(!v||!t)return;t.slices.push({id:uidGen(),text:v,done:false});commit();}
+  else if(kind==="edit"){const t=byId(f.dataset.id);if(!t)return;t.due=val("due-in");t.need=clip(val("need-in"),300);ui.panel=null;commit();toast("Saved");}
+  else if(kind==="need"){const t=byId(f.dataset.id);if(!t)return;t.need=clip(val("need-today"),300);const p=state.plan[dkey()]||(state.plan[dkey()]={});p.ready=true;commit();toast("Saved. Lay these out tonight.");}
+  else if(kind==="goal"){const v=clip(val("g-text"));if(!v||state.goals.length>=10)return;state.goals.push({id:uidGen(),text:v,deadline:"",major:!state.goals.some(g=>g.major),blocker:"",steps:[]});commit();toast("Written down. A written goal is not just a wish.");}
+  else if(kind==="step"){const g=goalById(f.dataset.id);const v=clip(val("step-"+f.dataset.id));if(!v||!g)return;g.steps.push({id:uidGen(),text:v,done:false});commit();}
+  else if(kind==="goalmeta"){const g=goalById(f.dataset.id);if(!g)return;g.deadline=val("gd-"+g.id);g.blocker=clip(val("gb-"+g.id),300);commit();toast("Saved");}
+  else if(kind==="kra"){const v=clip(val("kra-new"),80);if(!v||state.kra.length>=7)return;state.kra.push({id:uidGen(),name:v,score:5});commit();}
+});
+document.addEventListener("input",e=>{const r=e.target.closest("[data-kra]");if(!r)return;const k=state.kra.find(x=>x.id===r.dataset.kra);k.score=+r.value;r.parentElement.querySelector(".score").textContent=r.value;});
+document.addEventListener("change",e=>{
+  const el=e.target;
+  if(el.closest("[data-kra]")){commit();return}
+  if(el.dataset.ans){state.answers[el.dataset.ans]=clip(el.value,1000);quietCommit();return}
+  if(el.dataset.field){state[el.dataset.field]=clip(el.value,300); if(el.tagName==="SELECT") commit(); else quietCommit();}
+});
+
+// ================= BOOT =================
+state=loadLocal()||examples(); ai=makeAI(); render();
+if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+})();
+</script>
+</body>
+</html>

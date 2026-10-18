@@ -1,0 +1,30 @@
+# Free daily reminders on Telegram (optional).
+# Needs two repo secrets: TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID.
+# Times are UTC. 11:00 UTC = 7 am New York in summer (6 am in winter).
+#                01:00 UTC = 9 pm New York in summer (8 pm in winter).
+name: Frog reminders
+on:
+  schedule:
+    - cron: "0 11 * * *"
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram reminder
+        env:
+          TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SLOT: ${{ github.event.schedule }}
+          FULL: ${{ github.repository }}
+        run: |
+          if [ -z "$TOKEN" ] || [ -z "$CHAT" ]; then echo "Telegram secrets not set, skipping"; exit 0; fi
+          OWNER="${FULL%%/*}"; REPO="${FULL#*/}"; LINK="https://${OWNER,,}.github.io/${REPO}/"
+          if [ "$SLOT" = "0 1 * * *" ]; then
+            MSG="🌙 Plan tomorrow (10 min): clear finished jobs, add tomorrow's jobs, put A B C D E, pick your A-1 frog, lay out what you need. Then sleep early. $LINK"
+          else
+            MSG="🐸 Good morning! Eat your frog FIRST. Open your A-1 job, tap Start eating, no phone till it's done. Do it now! $LINK"
+          fi
+          curl -sS -X POST "https://api.telegram.org/bot${TOKEN}/sendMessage" --data-urlencode "chat_id=${CHAT}" --data-urlencode "text=${MSG}" > /dev/null
+          echo "sent"
