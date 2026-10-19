@@ -3,236 +3,523 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#2f8f4e">
+<meta name="theme-color" content="#f5f6f3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d100e" media="(prefers-color-scheme: dark)">
 <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Frog Pond">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
 <meta name="description" content="Eat That Frog daily planner: pick your frog, ABCDE lists, goals and the 21 rules.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Frog Pond Planner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Nunito:wght@400;600;700;800&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap">
 <style>
-/* Layout: one-column pond app with a fixed bottom tab bar; big touch targets so a child can use it */
+/* ===================================================================
+   Frog Pond 2.0 design system
+   Layout: mobile = one column + bottom tab bar + bottom sheets.
+           tablet = wider column. desktop (>=1024) = left rail + 2-column Today.
+   All values come from the tokens below. Business logic is untouched.
+   =================================================================== */
 :root{
-  --bg:#eef5ec; --surface:#ffffff; --surface2:#e2eee0; --fg:#1d2b1f; --muted:#5d7262;
-  --lily:#2f8f4e; --lily-ink:#ffffff; --lily-soft:#d6ecda; --sun:#f6c445; --sun-ink:#3a2c00;
-  --pond:#2d6f8f; --line:#cbdccb; --overlay:rgba(15,30,20,.6);
-  --a:#d9473b; --b:#e68a1f; --c:#3a8fc2; --d:#8a63c4; --e:#7d8a80;
-  --display:"Baloo 2","Trebuchet MS",system-ui,sans-serif;
-  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --r:16px;
+  /* spacing (4-pt scale) */
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px; --s-6:24px; --s-8:32px; --s-12:48px; --s-16:64px;
+  /* radius */
+  --r-sm:10px; --r-md:14px; --r-lg:20px; --r-xl:28px; --r-pill:999px;
+  /* type */
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-round:ui-rounded,"SF Pro Rounded","Nunito",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  --t-hero:clamp(30px,7.5vw,38px); --t-title:clamp(26px,6.5vw,30px); --t-h2:20px; --t-h3:17px;
+  --t-body:16px; --t-sm:14px; --t-xs:12.5px;
+  /* motion */
+  --d-micro:150ms; --d-ui:200ms; --d-screen:280ms; --d-sheet:320ms;
+  --ease:cubic-bezier(.2,.8,.2,1); --ease-spring:cubic-bezier(.34,1.56,.64,1);
+  /* layers */
+  --z-nav:10; --z-ptr:25; --z-focus:40; --z-sheet:45; --z-toast:60;
+  /* colors: light */
+  --bg:#f5f6f3; --surface:#ffffff; --surface-2:#f0f2ee; --surface-3:#e8ebe6;
+  --text:#121814; --text-2:#5a655e; --text-3:#87918a; --border:#e2e6e0; --border-strong:#cfd5cd;
+  --accent:#1f8a4c; --accent-ink:#ffffff; --accent-soft:#e5f3ea; --accent-text:#176a3a;
+  --warn:#b26a00; --warn-soft:#fff3dc; --danger:#c8322f; --danger-soft:#fde9e8; --info:#2563a8;
+  --pA:#d93a36; --pA-soft:#fdeceb; --pB:#c27a06; --pB-soft:#fff3db; --pC:#2f74c0; --pC-soft:#e8f1fb;
+  --pD:#7a55c9; --pD-soft:#f1ecfb; --pE:#6f7a73; --pE-soft:#eef0ee;
+  --scrim:rgba(14,20,16,.38);
+  --sh-1:0 1px 2px rgba(16,24,20,.05),0 1px 1px rgba(16,24,20,.03);
+  --sh-2:0 10px 30px rgba(16,24,20,.08),0 2px 6px rgba(16,24,20,.04);
+  --sh-3:0 -8px 40px rgba(16,24,20,.16);
+  --nav-bg:rgba(255,255,255,.86);
+  color-scheme:light;
 }
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0f1a13; --surface:#18261c; --surface2:#213428; --fg:#e4efe4; --muted:#9db3a2;
-  --lily:#4cbb6c; --lily-ink:#062010; --lily-soft:#1d3a26; --sun:#f6c445; --sun-ink:#2a2000;
-  --pond:#6db3d3; --line:#2e4535; --overlay:rgba(0,0,0,.7);
-  --a:#e85c50; --b:#e3953a; --c:#4a9fd3; --d:#9d7ae0; --e:#7b8a7f; color-scheme:dark}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d100e; --surface:#161a17; --surface-2:#1d221e; --surface-3:#252b26;
+  --text:#ecf0ec; --text-2:#a3ada6; --text-3:#78837c; --border:#272d28; --border-strong:#353c36;
+  --accent:#3fcf7d; --accent-ink:#04180b; --accent-soft:#16301f; --accent-text:#6fe0a0;
+  --warn:#f0b445; --warn-soft:#2e2412; --danger:#ff6b63; --danger-soft:#33191a; --info:#7ab3f2;
+  --pA:#ff6b63; --pA-soft:#381c1c; --pB:#f0b445; --pB-soft:#33270f; --pC:#6aa8ee; --pC-soft:#172a40;
+  --pD:#b096f2; --pD-soft:#271f3d; --pE:#97a29b; --pE-soft:#222824;
+  --scrim:rgba(0,0,0,.55);
+  --sh-1:0 0 0 rgba(0,0,0,0); --sh-2:0 10px 30px rgba(0,0,0,.35); --sh-3:0 -8px 40px rgba(0,0,0,.5);
+  --nav-bg:rgba(22,26,23,.86);
+  color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0f1a13; --surface:#18261c; --surface2:#213428; --fg:#e4efe4; --muted:#9db3a2;
-  --lily:#4cbb6c; --lily-ink:#062010; --lily-soft:#1d3a26; --sun:#f6c445; --sun-ink:#2a2000;
-  --pond:#6db3d3; --line:#2e4535; --overlay:rgba(0,0,0,.7);
-  --a:#e85c50; --b:#e3953a; --c:#4a9fd3; --d:#9d7ae0; --e:#7b8a7f; color-scheme:dark}
-*{box-sizing:border-box}
-html,body{background:var(--bg);color:var(--fg)}
-body{font-family:var(--body);font-size:16px;line-height:1.5;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:100px}
-.wrap{max-width:720px;margin:0 auto;padding-block:18px;display:flex;flex-direction:column;gap:16px}
-h1,h2,h3{font-family:var(--display);line-height:1.15;margin:0;text-wrap:balance}
-h1{font-size:1.9rem;font-weight:800}
-h2{font-size:1.35rem;font-weight:800}
-h3{font-size:1.08rem;font-weight:700}
+  --bg:#0d100e; --surface:#161a17; --surface-2:#1d221e; --surface-3:#252b26;
+  --text:#ecf0ec; --text-2:#a3ada6; --text-3:#78837c; --border:#272d28; --border-strong:#353c36;
+  --accent:#3fcf7d; --accent-ink:#04180b; --accent-soft:#16301f; --accent-text:#6fe0a0;
+  --warn:#f0b445; --warn-soft:#2e2412; --danger:#ff6b63; --danger-soft:#33191a; --info:#7ab3f2;
+  --pA:#ff6b63; --pA-soft:#381c1c; --pB:#f0b445; --pB-soft:#33270f; --pC:#6aa8ee; --pC-soft:#172a40;
+  --pD:#b096f2; --pD-soft:#271f3d; --pE:#97a29b; --pE-soft:#222824;
+  --scrim:rgba(0,0,0,.55);
+  --sh-1:0 0 0 rgba(0,0,0,0); --sh-2:0 10px 30px rgba(0,0,0,.35); --sh-3:0 -8px 40px rgba(0,0,0,.5);
+  --nav-bg:rgba(22,26,23,.86);
+  color-scheme:dark}
+
+/* ---------- base ---------- */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);overscroll-behavior-y:contain}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{font-family:var(--font);font-size:var(--t-body);line-height:1.45;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;
+  padding:env(safe-area-inset-top,0px) max(var(--s-4),env(safe-area-inset-right,0px)) calc(84px + env(safe-area-inset-bottom,0px)) max(var(--s-4),env(safe-area-inset-left,0px))}
+html.locked,html.locked body{overflow:hidden}
+h1,h2,h3{margin:0;font-family:var(--font-round);letter-spacing:-.01em;line-height:1.15;text-wrap:balance}
+h1{font-size:var(--t-title);font-weight:800}
+h2{font-size:var(--t-h2);font-weight:750}
+h3{font-size:var(--t-h3);font-weight:700}
 p{margin:0}
-.muted{color:var(--muted)}
-.small{font-size:.88rem}
-.src{font-size:.75rem;color:var(--muted);font-weight:700;letter-spacing:.03em}
 button,input,select,textarea{font:inherit;color:inherit}
-button{cursor:pointer}
-button:disabled{opacity:.55;cursor:default}
-:focus-visible{outline:3px solid var(--pond);outline-offset:2px;border-radius:8px}
+button{cursor:pointer;-webkit-user-select:none;user-select:none}
+button:disabled{cursor:default;opacity:.5}
+a{color:var(--accent-text)}
+:focus-visible{outline:2.5px solid var(--accent);outline-offset:2px;border-radius:var(--r-sm)}
+[hidden]{display:none!important}
+.sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ic{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.muted{color:var(--text-2)}
+.faint{color:var(--text-3)}
+.small{font-size:var(--t-sm)}
+.xs{font-size:var(--t-xs)}
+.src{font-size:var(--t-xs);color:var(--text-3);font-weight:600}
+.eyebrow{font-size:var(--t-xs);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-2)}
+.tnum{font-variant-numeric:tabular-nums}
+.stack{display:flex;flex-direction:column;gap:var(--s-3)}
+.row{display:flex;gap:var(--s-2);flex-wrap:wrap;align-items:center}
+.spread{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3)}
 
-header.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-header.top .who{flex:1 1 220px;min-width:0}
-.sync{font-size:.75rem;padding:4px 10px;border-radius:99px;background:var(--surface2);color:var(--muted);white-space:nowrap}
-.sync.ok{color:var(--lily)}
-.talk{border:none;background:var(--surface2);border-radius:99px;padding:6px 14px;font-family:var(--display);font-weight:800;color:var(--lily);font-size:1rem}
+/* ---------- app shell ---------- */
+#app{max-width:640px;margin:0 auto;padding-block:var(--s-4) var(--s-8);display:flex;flex-direction:column;gap:var(--s-4)}
+#app.enter{animation:screenIn var(--d-screen) var(--ease)}
+@keyframes screenIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.page-head{display:flex;flex-direction:column;gap:var(--s-1);padding-top:var(--s-2)}
+.page-head p{color:var(--text-2)}
+.today-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-3);padding-top:var(--s-2)}
+.today-head .who{min-width:0;display:flex;flex-direction:column;gap:2px}
+.today-head h1{font-size:var(--t-hero)}
+.meta-row{display:flex;flex-wrap:wrap;gap:var(--s-2);margin-top:var(--s-2)}
+.avatar{width:40px;height:40px;border-radius:50%;border:none;background:var(--surface-2);color:var(--text-2);display:grid;place-items:center;font-weight:800;flex:none}
+.avatar.on{background:var(--accent-soft);color:var(--accent-text)}
+.acct{border:none;background:none;padding:0;color:var(--text-2);font-size:var(--t-sm);display:inline-flex;align-items:center;gap:6px;max-width:100%;min-height:28px}
+.acct span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct .ic{width:16px;height:16px}
 
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
-.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.banner{background:var(--sun);color:var(--sun-ink);border-radius:var(--r);padding:14px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.banner p{flex:1;min-width:200px;font-weight:700}
-.banner .btn{background:var(--surface);color:var(--fg)}
+/* chips + status */
+.chip{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 var(--s-3);border-radius:var(--r-pill);background:var(--surface-2);color:var(--text-2);font-size:var(--t-sm);font-weight:600;border:none;white-space:nowrap}
+.chip .ic{width:15px;height:15px}
+.chip.accent{background:var(--accent-soft);color:var(--accent-text)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.sm{height:22px;padding:0 8px;font-size:11.5px;font-weight:700;letter-spacing:.02em}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--text-3);flex:none}
+.sync{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 var(--s-3);border-radius:var(--r-pill);background:var(--surface-2);color:var(--text-2);font-size:var(--t-sm);font-weight:600;border:none}
+.sync[data-s="synced"] .dot{background:var(--accent)}
+.sync[data-s="saving"] .dot{background:var(--info);animation:pulse 1s ease-in-out infinite}
+.sync[data-s="offline"] .dot,.sync[data-s="locked"] .dot{background:var(--warn)}
+.sync[data-s="error"] .dot{background:var(--danger)}
+@keyframes pulse{50%{opacity:.35}}
 
-/* frog hero */
-.frog-card{background:var(--lily-soft);border:2px solid var(--lily);border-radius:22px;padding:18px;display:grid;grid-template-columns:96px 1fr;gap:16px;align-items:center}
-.frog-card .txt{min-width:0;display:flex;flex-direction:column;gap:8px}
-.frog-card .label{font-family:var(--display);font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:.8rem;color:var(--lily)}
-.frog-card .task{font-family:var(--display);font-size:1.5rem;font-weight:800;line-height:1.2;overflow-wrap:anywhere}
-.frog-card.eaten{border-color:var(--sun)}
-.frog-card.eaten .task{text-decoration:line-through;opacity:.75}
-.frogsvg{width:96px;height:96px}
-@media (max-width:420px){.frog-card{grid-template-columns:60px 1fr;padding:14px}.frogsvg{width:60px;height:60px}.frog-card .task{font-size:1.25rem}}
-.need{font-size:.88rem;background:var(--surface);border-radius:10px;padding:6px 10px;overflow-wrap:anywhere}
+/* ---------- cards ---------- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:var(--s-4);display:flex;flex-direction:column;gap:var(--s-3);min-width:0;box-shadow:var(--sh-1)}
+.card.flat{box-shadow:none}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3)}
+.card-head h2{font-size:var(--t-h3)}
+.notice{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) var(--s-4);border-radius:var(--r-md);background:var(--surface-2);font-size:var(--t-sm)}
+.notice .ic{color:var(--accent-text)}
+.notice p{flex:1;min-width:0}
 
-.btn{border:none;border-radius:14px;padding:12px 16px;font-weight:800;background:var(--surface2);min-height:46px}
-.btn.primary{background:var(--lily);color:var(--lily-ink)}
-.btn.sun{background:var(--sun);color:var(--sun-ink)}
-.btn.ghost{background:transparent;border:1px solid var(--line)}
-.btn.tiny{min-height:34px;padding:6px 10px;font-size:.85rem;border-radius:10px}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+/* hero (the guide) */
+.hero{position:relative;background:var(--surface);border-radius:var(--r-xl);padding:var(--s-6) var(--s-5) var(--s-5);display:flex;flex-direction:column;gap:var(--s-4);box-shadow:var(--sh-2);border:1px solid var(--border);overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0 0 auto 0;height:4px;background:var(--accent)}
+.hero.plan::before{background:var(--info)}
+.hero.done::before{background:var(--warn)}
+.hero-top{display:flex;align-items:center;gap:var(--s-3)}
+.hero-top .frog{width:44px;height:44px;flex:none}
+.hero .eyebrow{color:var(--accent-text)}
+.hero.plan .eyebrow{color:var(--info)}
+.hero-title{font-family:var(--font-round);font-size:clamp(24px,6vw,30px);font-weight:800;line-height:1.15;letter-spacing:-.015em;overflow-wrap:anywhere}
+.hero-sub{color:var(--text-2);font-size:15px}
+.hero-meta{display:flex;flex-direction:column;gap:var(--s-2);font-size:var(--t-sm)}
+.hero-meta .line{display:flex;gap:var(--s-2);align-items:flex-start;color:var(--text-2)}
+.hero-meta .line .ic{width:17px;height:17px;margin-top:1px;color:var(--text-3)}
+.hero-meta b{color:var(--text);font-weight:600}
+.hero-actions{display:flex;gap:var(--s-2);flex-wrap:wrap}
+.hero-actions .btn{flex:1 1 auto}
+.hero-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);border-top:1px solid var(--border);padding-top:var(--s-3);margin-top:var(--s-1)}
+.talk{border:none;background:none;padding:var(--s-1) 0;color:var(--accent-text);font-weight:700;font-family:var(--font-round);font-size:15px;display:inline-flex;gap:6px;align-items:center;min-height:36px}
+.talk .ic{width:15px;height:15px}
 
-.add{display:flex;gap:8px}
-.add input{flex:1;min-width:0}
-input.in,textarea.in,select.in,.add input{border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 12px;width:100%}
-.add input:focus,input.in:focus,textarea.in:focus{border-color:var(--lily);outline:none}
-textarea.in{resize:vertical;min-height:64px}
-label.f{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:.9rem}
+/* next + progress */
+.next-row{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) var(--s-4);background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg)}
+.next-row .txt{flex:1;min-width:0}
+.next-row .txt b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.progress{height:8px;border-radius:var(--r-pill);background:var(--surface-3);overflow:hidden}
+.progress i{display:block;height:100%;border-radius:inherit;background:var(--accent);transition:width var(--d-screen) var(--ease)}
 
-ul.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-li.t{display:grid;grid-template-columns:auto auto 1fr auto;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px}
-li.t.done .txt{text-decoration:line-through;color:var(--muted)}
-li.t .txt{min-width:0;overflow-wrap:anywhere;font-weight:700}
-li.t .sub{font-weight:400;font-size:.8rem;color:var(--muted);text-decoration:none}
-.check{width:34px;height:34px;border-radius:50%;border:3px solid var(--lily);background:transparent;display:grid;place-items:center;padding:0;flex:none}
-.check.on{background:var(--lily)}
-.check.on::after{content:"";width:12px;height:7px;border-left:3px solid var(--lily-ink);border-bottom:3px solid var(--lily-ink);transform:rotate(-45deg) translate(1px,-1px)}
-.letter{min-width:40px;height:34px;border-radius:10px;border:none;font-family:var(--display);font-weight:800;font-size:1rem;color:#fff;background:var(--e);padding:0 6px}
-.letter[data-l="A"]{background:var(--a)}.letter[data-l="B"]{background:var(--b)}.letter[data-l="C"]{background:var(--c)}.letter[data-l="D"]{background:var(--d)}.letter[data-l=""]{background:var(--surface2);color:var(--muted);border:2px dashed var(--line)}
-.more{border:none;background:transparent;font-size:1.3rem;line-height:1;min-width:34px;height:34px;border-radius:10px;color:var(--muted)}
-.chip{display:inline-block;font-size:.7rem;font-weight:800;padding:1px 7px;border-radius:99px;background:var(--surface2);color:var(--muted);letter-spacing:.04em;text-transform:uppercase;vertical-align:middle;text-decoration:none}
-.chip.frog{background:var(--lily);color:var(--lily-ink)}
-.chip.late{background:var(--a);color:#fff}
-.menu{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;padding-top:8px;border-top:1px dashed var(--line)}
-.panel{grid-column:1/-1;display:flex;flex-direction:column;gap:8px}
-.empty{padding:16px;border:2px dashed var(--line);border-radius:14px;text-align:center;color:var(--muted)}
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--s-2);min-height:44px;padding:0 var(--s-4);border-radius:var(--r-md);border:1px solid transparent;
+  font-weight:650;font-size:15.5px;background:var(--surface-2);color:var(--text);transition:transform var(--d-micro) var(--ease),background-color var(--d-ui),opacity var(--d-ui);white-space:nowrap}
+.btn .ic{width:18px;height:18px}
+.btn:active:not(:disabled){transform:scale(.97)}
+.btn-primary{background:var(--accent);color:var(--accent-ink)}
+.btn-primary:hover:not(:disabled){filter:brightness(1.05)}
+.btn-secondary{background:var(--surface-2);color:var(--text)}
+.btn-secondary:hover:not(:disabled){background:var(--surface-3)}
+.btn-soft{background:var(--accent-soft);color:var(--accent-text)}
+.btn-ghost{background:transparent;border-color:var(--border-strong);color:var(--text)}
+.btn-ghost:hover:not(:disabled){background:var(--surface-2)}
+.btn-plain{background:transparent;color:var(--accent-text);padding:0 var(--s-2)}
+.btn-danger{background:var(--danger-soft);color:var(--danger)}
+.btn-lg{min-height:54px;font-size:17px;border-radius:var(--r-lg)}
+.btn-sm{min-height:36px;padding:0 var(--s-3);font-size:var(--t-sm);border-radius:var(--r-sm)}
+.btn-block{width:100%}
+.btn[aria-busy="true"]{opacity:.7;pointer-events:none}
+.icon-btn{width:44px;height:44px;border-radius:50%;border:none;background:transparent;color:var(--text-2);display:grid;place-items:center;flex:none;transition:background-color var(--d-ui),transform var(--d-micro) var(--ease)}
+.icon-btn:hover{background:var(--surface-2)}
+.icon-btn:active{transform:scale(.92)}
 
-.legend{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-.legend div{border-radius:12px;padding:8px 4px;text-align:center;font-size:.76rem;line-height:1.25;background:var(--surface2)}
-.legend b{display:block;font-family:var(--display);font-size:1.25rem;color:#fff;border-radius:8px;margin-bottom:4px}
-@media (max-width:460px){.legend div{font-size:.66rem;padding:6px 2px}}
+/* ---------- inputs ---------- */
+.field{display:flex;flex-direction:column;gap:6px;font-size:var(--t-sm);font-weight:600;color:var(--text-2)}
+.input,.field input,.field textarea,.field select{width:100%;min-height:46px;padding:11px 14px;border-radius:var(--r-md);border:1px solid var(--border-strong);background:var(--surface);color:var(--text);
+  font-size:16px;font-weight:400;transition:border-color var(--d-ui),box-shadow var(--d-ui)}
+.field textarea{min-height:76px;resize:vertical;line-height:1.4}
+.input:focus,.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.add{display:flex;gap:var(--s-2);align-items:center}
+.add .input{flex:1;min-width:0}
+.add-plus{background:var(--surface-2);border-color:transparent}
+input[type=range]{accent-color:var(--accent);width:100%}
+input[type=checkbox]{accent-color:var(--accent);width:22px;height:22px;flex:none}
 
-.days21{display:grid;grid-template-columns:repeat(21,1fr);gap:3px}
-.days21 i{aspect-ratio:1;border-radius:50%;background:var(--surface2);display:block}
-.days21 i.on{background:var(--lily)}
-@media (max-width:460px){.days21{grid-template-columns:repeat(11,1fr)}}
-.stats{display:flex;gap:10px;flex-wrap:wrap}
-.stat{flex:1;min-width:110px;background:var(--surface2);border-radius:14px;padding:10px 14px}
-.stat .n{font-family:var(--display);font-size:1.7rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+/* ---------- task rows ---------- */
+.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.tasks>li+li{border-top:1px solid var(--border)}
+.task{position:relative;overflow:hidden;touch-action:pan-y}
+.task .swipe-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 var(--s-5);font-weight:700;font-size:var(--t-sm);opacity:0}
+.task .swipe-bg .l{color:var(--accent-text)}
+.task .swipe-bg .r{color:var(--text-2)}
+.task.swiping .swipe-bg{opacity:1}
+.task.swiping.right .swipe-bg{background:var(--accent-soft)}
+.task.swiping.left .swipe-bg{background:var(--surface-2)}
+.t-in{position:relative;display:flex;align-items:center;gap:var(--s-2);padding:6px 0;background:var(--surface);transition:transform var(--d-ui) var(--ease)}
+.task.dragging .t-in{transition:none}
+.t-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding:6px 0;text-align:left;background:none;border:none;color:inherit;cursor:pointer}
+.t-title{font-weight:550;line-height:1.3;overflow-wrap:anywhere}
+.t-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:var(--t-xs);color:var(--text-3)}
+.t-meta .late{color:var(--danger);font-weight:700}
+.t-meta .frogtag{color:var(--accent-text);font-weight:700}
+.task.done .t-title{color:var(--text-3);text-decoration:line-through;text-decoration-thickness:1.5px}
+.check{width:44px;height:44px;border:none;background:none;padding:0;display:grid;place-items:center;flex:none;color:var(--accent)}
+.check i{width:24px;height:24px;border-radius:50%;border:2px solid var(--border-strong);display:grid;place-items:center;transition:all var(--d-ui) var(--ease)}
+.check i svg{width:14px;height:14px;stroke:var(--accent-ink);stroke-width:3;fill:none;stroke-dasharray:20;stroke-dashoffset:20;transition:stroke-dashoffset var(--d-ui) var(--ease) 60ms}
+.check.on i{background:var(--accent);border-color:var(--accent)}
+.check.on i svg{stroke-dashoffset:0}
+.check:hover i{border-color:var(--accent)}
+.task.completing .check i{background:var(--accent);border-color:var(--accent);transform:scale(1.12)}
+.task.completing .check i svg{stroke-dashoffset:0}
+.task.completing .t-title{color:var(--text-3)}
+.task.completing,.task.removing{animation:collapse 260ms var(--ease) 140ms forwards}
+@keyframes collapse{to{opacity:0;transform:translateX(12px)}}
+.task.enter .t-in{animation:rowIn 320ms var(--ease)}
+@keyframes rowIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.prio{min-width:44px;height:30px;padding:0 9px;border-radius:var(--r-sm);border:none;font-weight:800;font-size:13px;letter-spacing:.02em;display:inline-grid;place-items:center;flex:none;font-variant-numeric:tabular-nums;transition:transform var(--d-micro) var(--ease),background-color var(--d-ui)}
+.prio:active{transform:scale(.94)}
+.prio[data-l="A"]{background:var(--pA-soft);color:var(--pA)}
+.prio[data-l="B"]{background:var(--pB-soft);color:var(--pB)}
+.prio[data-l="C"]{background:var(--pC-soft);color:var(--pC)}
+.prio[data-l="D"]{background:var(--pD-soft);color:var(--pD)}
+.prio[data-l="E"]{background:var(--pE-soft);color:var(--pE)}
+.prio[data-l=""]{background:transparent;color:var(--text-3);border:1.5px dashed var(--border-strong)}
+.prio.pop{animation:popIn 300ms var(--ease-spring)}
+@keyframes popIn{from{transform:scale(.7)}to{transform:scale(1)}}
+.more-btn{width:40px;height:44px;border:none;background:none;color:var(--text-3);display:grid;place-items:center;flex:none;border-radius:var(--r-sm)}
+.more-btn:hover{color:var(--text);background:var(--surface-2)}
+.insight{display:flex;gap:var(--s-2);font-size:var(--t-sm);color:var(--text-2);background:var(--surface-2);border-radius:var(--r-md);padding:var(--s-3)}
+.insight .ic{width:17px;height:17px;color:var(--warn);margin-top:1px}
 
-.habits{display:flex;flex-direction:column;gap:8px}
-.habit{display:flex;gap:12px;align-items:center}
-.habit span{flex:1;min-width:0}
-.habit .check{width:30px;height:30px;border-width:2px;flex:none}
+/* ---------- empty + error ---------- */
+.empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--s-2);padding:var(--s-6) var(--s-4);color:var(--text-2)}
+.empty .frog{width:52px;height:52px;opacity:.95}
+.empty b{color:var(--text);font-size:var(--t-h3)}
+.alert{display:flex;gap:var(--s-3);padding:var(--s-3) var(--s-4);border-radius:var(--r-md);background:var(--danger-soft);color:var(--text);font-size:var(--t-sm)}
+.alert .ic{color:var(--danger);margin-top:1px}
+.alert.ok{background:var(--accent-soft)}
+.alert.ok .ic{color:var(--accent-text)}
 
-.seg{display:flex;gap:4px;background:var(--surface2);padding:5px;border-radius:14px;overflow-x:auto}
-.seg button{flex:1;border:none;background:transparent;border-radius:10px;padding:8px 10px;font-weight:800;white-space:nowrap;color:var(--muted)}
-.seg button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 3px rgba(0,0,0,.12)}
-.flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.85rem;color:var(--muted)}
-.flow b{color:var(--fg)}
+/* ---------- habits / streak ---------- */
+.habit-dots{display:flex;gap:6px}
+.habit-dots i{width:10px;height:10px;border-radius:50%;background:var(--surface-3)}
+.habit-dots i.on{background:var(--accent)}
+.hlist{display:flex;flex-direction:column}
+.hrow{display:flex;align-items:center;gap:var(--s-1);min-height:48px}
+.hrow+.hrow{border-top:1px solid var(--border)}
+.hrow .txt{flex:1;min-width:0;font-size:15px}
+.hrow .txt small{display:block;color:var(--text-3);font-size:var(--t-xs)}
+.days21{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.days21 i{aspect-ratio:1;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:700;color:var(--text-3);transition:background-color var(--d-ui)}
+.days21 i.on{background:var(--accent);color:var(--accent-ink)}
+.days21 i.today{box-shadow:0 0 0 2px var(--accent) inset}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s-2)}
+.stat{background:var(--surface-2);border-radius:var(--r-md);padding:var(--s-3)}
+.stat .n{font-family:var(--font-round);font-size:26px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .l{font-size:var(--t-xs);color:var(--text-2)}
 
-.goal{border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;background:var(--surface)}
-.goal.major{border:2px solid var(--lily);background:var(--lily-soft)}
-.goal .gt{font-family:var(--display);font-size:1.15rem;font-weight:800;overflow-wrap:anywhere;flex:1;min-width:0}
-.goal-head{display:flex;gap:8px;align-items:center}
-.star{border:none;background:transparent;font-size:1.4rem;line-height:1;width:36px;height:36px;border-radius:10px;color:var(--muted)}
-.star.on{color:var(--b)}
-.bar{height:10px;border-radius:99px;background:var(--surface2);overflow:hidden}
-.bar i{display:block;height:100%;background:var(--lily);border-radius:99px}
-.mini{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
-.mini li{display:flex;gap:8px;align-items:center}
-.mini li .check{width:28px;height:28px;border-width:2px}
-.mini li span{min-width:0;overflow-wrap:anywhere;flex:1}
-.mini li.done span{text-decoration:line-through;color:var(--muted)}
-.mini li.next span{font-weight:800}
-.barrel{font-size:.8rem;font-weight:800;color:var(--sun-ink);background:var(--sun);border-radius:99px;padding:1px 8px;white-space:nowrap}
+/* ---------- disclosure ---------- */
+details.disc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+details.disc>summary{list-style:none;display:flex;align-items:center;gap:var(--s-3);min-height:56px;padding:0 var(--s-4);cursor:pointer;font-weight:650}
+details.disc>summary::-webkit-details-marker{display:none}
+details.disc>summary .chev{margin-left:auto;color:var(--text-3);transition:transform var(--d-ui) var(--ease)}
+details.disc[open]>summary .chev{transform:rotate(90deg)}
+details.disc>summary .ic:first-child{color:var(--text-2)}
+details.disc .disc-body{padding:0 var(--s-4) var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)}
+details.disc.help{background:transparent;border-style:dashed}
+ol.steps,ul.qs{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:var(--s-2);color:var(--text-2)}
+ol.steps b,ul.qs b{color:var(--text)}
 
-.kra{display:flex;flex-direction:column;gap:10px}
-.kra-row{display:grid;grid-template-columns:minmax(0,1fr) 140px 30px 30px;gap:8px;align-items:center}
-.kra-row input[type=range]{width:100%;accent-color:var(--lily)}
-.kra-row .score{font-family:var(--display);font-weight:800;font-size:1.2rem;text-align:right;font-variant-numeric:tabular-nums}
-.kra-row.low .score{color:var(--a)}
-@media (max-width:420px){.kra-row{grid-template-columns:minmax(0,1fr) 96px 26px 28px}}
+/* ---------- segmented control ---------- */
+.seg{display:flex;gap:2px;padding:3px;background:var(--surface-3);border-radius:var(--r-md);overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{flex:1 0 auto;min-height:38px;padding:0 var(--s-3);border:none;border-radius:11px;background:transparent;color:var(--text-2);font-weight:650;font-size:var(--t-sm);white-space:nowrap;transition:background-color var(--d-ui),color var(--d-ui)}
+.seg button[aria-selected="true"]{background:var(--surface);color:var(--text);box-shadow:var(--sh-1),0 0 0 .5px var(--border)}
+.seg .cnt{margin-left:4px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.horizon{display:flex;align-items:center;gap:6px;font-size:var(--t-xs);color:var(--text-3);flex-wrap:wrap}
+.horizon b{color:var(--text-2);font-weight:650}
+.horizon b.cur{color:var(--accent-text)}
 
-.rule-today{background:var(--sun);color:var(--sun-ink);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:8px}
-.rule-today .k{font-weight:800;text-transform:uppercase;letter-spacing:.08em;font-size:.75rem}
-.rule-today h2{font-size:1.6rem}
-.rules{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
-.rule{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
-.rule .num{font-family:var(--display);font-weight:800;color:var(--lily);font-size:.9rem;font-variant-numeric:tabular-nums}
-.rule p{font-size:.9rem}
-.rule .do{font-size:.85rem;color:var(--muted);border-top:1px dashed var(--line);padding-top:6px}
-.rule .do b{color:var(--lily)}
+/* ---------- goals ---------- */
+.goal-hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-xl);padding:var(--s-5);display:flex;flex-direction:column;gap:var(--s-4);box-shadow:var(--sh-2)}
+.goal-hero .eyebrow{color:var(--warn);display:flex;align-items:center;gap:6px}
+.goal-title{font-family:var(--font-round);font-size:clamp(22px,5.5vw,26px);font-weight:800;line-height:1.2;overflow-wrap:anywhere}
+.nextstep{background:var(--accent-soft);border-radius:var(--r-lg);padding:var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)}
+.nextstep .eyebrow{color:var(--accent-text)}
+.nextstep b{font-size:17px;font-weight:650;overflow-wrap:anywhere}
+.steplist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.steplist li{display:flex;align-items:center;gap:var(--s-1);min-height:48px}
+.steplist li+li{border-top:1px solid var(--border)}
+.steplist li .txt{flex:1;min-width:0;overflow-wrap:anywhere}
+.steplist li.done .txt{color:var(--text-3);text-decoration:line-through}
+.steplist li.next .txt{font-weight:650}
+.goal-row{display:flex;align-items:center;gap:var(--s-2);min-height:56px}
+.goal-row+.goal-row,.goal-row+.goal-open,.goal-open+.goal-row{border-top:1px solid var(--border)}
+.goal-row .txt{flex:1;min-width:0;font-weight:550;overflow-wrap:anywhere}
+.star{width:44px;height:44px;border:none;background:none;display:grid;place-items:center;color:var(--text-3);flex:none}
+.star.on{color:var(--warn)}
+.star svg{width:22px;height:22px}
+.star.on svg{fill:currentColor}
+.goal-open{padding-bottom:var(--s-3);display:flex;flex-direction:column;gap:var(--s-3)}
 
-details.card summary{cursor:pointer;font-weight:800;font-family:var(--display);font-size:1.1rem}
-details.card[open] summary{margin-bottom:4px}
-ol.steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px}
-ul.qs{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+/* ---------- KRA ---------- */
+.kra-row{display:grid;grid-template-columns:minmax(0,1fr) 32px 40px;gap:2px var(--s-2);align-items:center;padding:var(--s-2) 0}
+.kra-row>span:first-child{grid-column:1/-1}
+@media (min-width:700px){.kra-row{grid-template-columns:minmax(0,1fr) minmax(140px,220px) 32px 40px}.kra-row>span:first-child{grid-column:auto}}
+.kra-row+.kra-row{border-top:1px solid var(--border)}
+.kra-row .score{font-family:var(--font-round);font-weight:800;font-size:19px;text-align:right;font-variant-numeric:tabular-nums}
+.kra-row.low .score{color:var(--pA)}
 
-nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);z-index:5}
-nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);max-width:720px;width:100%}
-nav.tabs button{border:none;background:transparent;padding:9px 2px 11px;display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:800;font-size:.75rem;color:var(--muted)}
-nav.tabs button svg{width:25px;height:25px}
-nav.tabs button[aria-selected="true"]{color:var(--lily)}
+/* ---------- rules ---------- */
+.rule-hero{background:linear-gradient(160deg,var(--warn-soft),var(--surface) 70%);border:1px solid var(--border);border-radius:var(--r-xl);padding:var(--s-5);display:flex;flex-direction:column;gap:var(--s-3)}
+.rule-hero .eyebrow{color:var(--warn)}
+.rule-hero h2{font-size:clamp(22px,5.5vw,26px)}
+.do-now{background:var(--surface);border-radius:var(--r-md);padding:var(--s-3);font-size:15px;border:1px solid var(--border)}
+.do-now b{color:var(--accent-text)}
+.rule-list{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+.rule-list details+details{border-top:1px solid var(--border)}
+.rule-list summary{list-style:none;display:flex;align-items:center;gap:var(--s-3);min-height:56px;padding:0 var(--s-4);cursor:pointer;font-weight:600}
+.rule-list summary::-webkit-details-marker{display:none}
+.rule-list .num{width:28px;height:28px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;font-size:12.5px;font-weight:800;color:var(--text-2);flex:none;font-variant-numeric:tabular-nums}
+.rule-list .chev{margin-left:auto;color:var(--text-3);transition:transform var(--d-ui) var(--ease)}
+.rule-list details[open] .chev{transform:rotate(90deg)}
+.rule-list .body{padding:0 var(--s-4) var(--s-4) calc(var(--s-4) + 40px);display:flex;flex-direction:column;gap:var(--s-3);color:var(--text-2)}
 
-.overlay{position:fixed;inset:0;display:grid;place-items:center;background:var(--overlay);z-index:20;padding:max(20px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
-.overlay .box{background:var(--surface);border-radius:24px;padding:24px;width:100%;max-width:420px;max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:12px;align-items:stretch;animation:pop .4s ease-out}
-.overlay .box.center{align-items:center;text-align:center}
-.overlay .frogsvg{width:110px;height:110px;animation:hop 1s ease-in-out infinite}
-.clock{font-family:var(--display);font-weight:800;font-size:4.2rem;line-height:1;text-align:center;font-variant-numeric:tabular-nums;color:var(--lily)}
-.focus-task{font-family:var(--display);font-size:1.3rem;font-weight:800;text-align:center;overflow-wrap:anywhere}
-.pick{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.pick button{text-align:left;line-height:1.25}
-.pick button small{display:block;font-weight:600;font-size:.75rem;opacity:.8}
-.prep{display:flex;flex-direction:column;gap:6px}
-@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
-@keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
-@media (prefers-reduced-motion:reduce){.overlay .box,.overlay .frogsvg{animation:none}}
-.nextcard{background:var(--surface);border:3px solid var(--sun);border-radius:22px;padding:16px;display:flex;flex-direction:column;gap:10px}
-.nextcard .k{font-family:var(--display);font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:.75rem;color:var(--b)}
-.nextcard .what{font-family:var(--display);font-size:1.35rem;font-weight:800;line-height:1.2;overflow-wrap:anywhere}
-.nextcard .btn{font-size:1.05rem;min-height:52px}
-.lpick{display:flex;flex-direction:column;gap:8px}
-.lpick button{display:grid;grid-template-columns:48px 1fr;gap:12px;align-items:center;text-align:left;border:2px solid var(--line);background:var(--surface);border-radius:14px;padding:8px 12px}
-.lpick button[aria-pressed="true"]{border-color:var(--fg)}
-.lpick b.l{font-family:var(--display);font-size:1.5rem;color:#fff;border-radius:10px;text-align:center;line-height:44px;height:44px}
-.lpick span small{display:block;color:var(--muted);font-size:.8rem}
-.minil{display:flex;gap:4px;flex-wrap:wrap}
-.minil button{width:36px;height:36px;border-radius:9px;border:2px solid var(--line);background:var(--surface);font-family:var(--display);font-weight:800}
-.minil button[aria-pressed="true"]{color:#fff;border-color:transparent}
-.minil button[data-l="A"][aria-pressed="true"]{background:var(--a)}.minil button[data-l="B"][aria-pressed="true"]{background:var(--b)}.minil button[data-l="C"][aria-pressed="true"]{background:var(--c)}.minil button[data-l="D"][aria-pressed="true"]{background:var(--d)}.minil button[data-l="E"][aria-pressed="true"]{background:var(--e)}
-.wrow{display:flex;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px dashed var(--line)}
-.wrow .wt{font-weight:700;overflow-wrap:anywhere}
+/* ---------- settings groups ---------- */
+.group{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+.group-title{font-size:var(--t-xs);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);padding:0 var(--s-1);margin-top:var(--s-2)}
+.cell{display:flex;align-items:center;gap:var(--s-3);min-height:52px;padding:var(--s-2) var(--s-4);width:100%;background:none;border:none;text-align:left;color:var(--text)}
+.cell+.cell{border-top:1px solid var(--border)}
+.cell .ic{color:var(--text-2)}
+.cell .txt{flex:1;min-width:0}
+.cell .txt small{display:block;color:var(--text-3);font-size:var(--t-xs)}
+.cell .chev{color:var(--text-3)}
+button.cell:hover{background:var(--surface-2)}
+.cell.danger{color:var(--danger)}
+.cell.danger .ic{color:var(--danger)}
+.group .pad{padding:var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)}
+.group .pad+.pad,.group .cell+.pad,.group .pad+.cell{border-top:1px solid var(--border)}
+
+/* ---------- bottom navigation ---------- */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:var(--z-nav);background:var(--nav-bg);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);border-top:1px solid var(--border);
+  padding:0 env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+nav.tabs .in{display:grid;grid-template-columns:repeat(5,1fr);max-width:640px;margin:0 auto}
+nav.tabs button{min-height:58px;border:none;background:none;color:var(--text-3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:600;transition:color var(--d-ui)}
+nav.tabs button .pill{width:52px;height:30px;border-radius:var(--r-pill);display:grid;place-items:center;transition:background-color var(--d-ui) var(--ease),transform var(--d-micro) var(--ease)}
+nav.tabs button .ic{width:23px;height:23px}
+nav.tabs button[aria-current="page"]{color:var(--accent-text)}
+nav.tabs button[aria-current="page"] .pill{background:var(--accent-soft)}
+nav.tabs button:active .pill{transform:scale(.92)}
+
+/* ---------- sheets + dialogs ---------- */
+#layer .scrim{position:fixed;inset:0;background:var(--scrim);z-index:var(--z-sheet);opacity:0;transition:opacity var(--d-sheet) var(--ease)}
+#layer .sheet{position:fixed;left:0;right:0;bottom:0;z-index:calc(var(--z-sheet) + 1);max-height:min(88dvh,88vh);background:var(--surface);border-radius:var(--r-xl) var(--r-xl) 0 0;box-shadow:var(--sh-3);
+  display:flex;flex-direction:column;transform:translateY(100%);transition:transform var(--d-sheet) var(--ease);max-width:640px;margin:0 auto;outline:none}
+#layer.open .scrim{opacity:1}
+#layer.open .sheet{transform:none}
+#layer.closing .scrim{opacity:0;transition-duration:var(--d-ui)}
+#layer.closing .sheet{transform:translateY(100%);transition-duration:var(--d-ui)}
+.grab{width:38px;height:5px;border-radius:3px;background:var(--border-strong);margin:8px auto 0;flex:none}
+.sheet-head{display:flex;align-items:flex-start;gap:var(--s-3);padding:var(--s-3) var(--s-5) var(--s-2)}
+.sheet-head .t{flex:1;min-width:0}
+.sheet-head h2{font-size:21px}
+.sheet-body{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:var(--s-2) var(--s-5) calc(var(--s-6) + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:var(--s-4);overscroll-behavior:contain}
+.sheet-body>*,.stack>*,#app>*,.col>*{flex-shrink:0}
+.sheet.center .sheet-body{align-items:center;text-align:center}
+.sec-title{font-size:var(--t-xs);font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
+.opt-list{display:flex;flex-direction:column;background:var(--surface-2);border-radius:var(--r-md);overflow:hidden}
+.opt{display:flex;align-items:center;gap:var(--s-3);min-height:52px;padding:0 var(--s-4);border:none;background:none;text-align:left;color:var(--text);width:100%;font-size:16px}
+.opt+.opt{border-top:1px solid var(--border)}
+.opt .ic{color:var(--text-2)}
+.opt:hover{background:var(--surface-3)}
+.opt.danger,.opt.danger .ic{color:var(--danger)}
+.opt .txt{flex:1;min-width:0}
+.opt .txt small{display:block;font-size:var(--t-xs);color:var(--text-3)}
+.lpick{display:flex;flex-direction:column;gap:var(--s-2)}
+.lpick button{display:flex;align-items:center;gap:var(--s-3);min-height:60px;padding:var(--s-2) var(--s-3);border-radius:var(--r-md);border:1.5px solid var(--border);background:var(--surface);text-align:left;width:100%}
+.lpick button[aria-pressed="true"]{border-color:var(--text);background:var(--surface-2)}
+.lpick .prio{min-width:44px;height:44px;font-size:18px}
+.lpick .txt{flex:1;min-width:0}
+.lpick .txt small{display:block;color:var(--text-2);font-size:13.5px;font-weight:400}
+.minil{display:flex;gap:6px}
+.minil button{flex:1;min-width:44px;height:44px;border-radius:var(--r-sm);border:1.5px solid var(--border);background:var(--surface);font-weight:800;color:var(--text-2);transition:all var(--d-ui) var(--ease)}
+.minil button[aria-pressed="true"]{border-color:transparent}
+.minil button[data-l="A"][aria-pressed="true"]{background:var(--pA-soft);color:var(--pA)}
+.minil button[data-l="B"][aria-pressed="true"]{background:var(--pB-soft);color:var(--pB)}
+.minil button[data-l="C"][aria-pressed="true"]{background:var(--pC-soft);color:var(--pC)}
+.minil button[data-l="D"][aria-pressed="true"]{background:var(--pD-soft);color:var(--pD)}
+.minil button[data-l="E"][aria-pressed="true"]{background:var(--pE-soft);color:var(--pE)}
+.steps-bar{display:flex;gap:4px}
+.steps-bar i{flex:1;height:4px;border-radius:2px;background:var(--surface-3)}
+.steps-bar i.on{background:var(--accent)}
+.wrow{display:flex;flex-direction:column;gap:var(--s-2);padding:var(--s-3) 0}
+.wrow+.wrow{border-top:1px solid var(--border)}
+.wrow .wt{font-weight:600;overflow-wrap:anywhere}
+.sheet-foot{display:flex;gap:var(--s-2);padding-top:var(--s-2)}
+.sheet-foot .btn{flex:1}
+.durations{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--s-2);width:100%}
+.durations button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:70px;padding:var(--s-3) var(--s-4);border-radius:var(--r-lg);border:1.5px solid var(--border);background:var(--surface);text-align:left;transition:transform var(--d-micro) var(--ease),border-color var(--d-ui)}
+.durations button:active{transform:scale(.97)}
+.durations button b{font-family:var(--font-round);font-size:22px;font-weight:800}
+.durations button small{color:var(--text-2);font-size:13px}
+.durations button.rec{border-color:var(--accent);background:var(--accent-soft)}
+.checks{display:flex;flex-direction:column;background:var(--surface-2);border-radius:var(--r-md);overflow:hidden;width:100%}
+.checks label{display:flex;align-items:center;gap:var(--s-3);min-height:52px;padding:var(--s-2) var(--s-4);text-align:left;font-size:15px}
+.checks label+label{border-top:1px solid var(--border)}
 .dots{display:flex;gap:6px;justify-content:center}
-.dots i{width:8px;height:8px;border-radius:50%;background:var(--line);display:block}
-.dots i.on{background:var(--lily);width:22px;border-radius:99px}
-details.help{background:var(--lily-soft);border:none}
-details.help summary{font-size:1rem}
-.guide h3{margin-top:6px}
-.guide p,.guide li{font-size:.92rem}
-.guide ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
-.guide .ex{background:var(--lily-soft);border-radius:12px;padding:10px 12px;font-size:.88rem}
-.guide .ex b{color:var(--lily)}
-.acct{border:none;background:transparent;padding:2px 0;margin-top:2px;font-size:.8rem;font-weight:700;color:var(--lily);text-align:left;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
-.acct.off{color:var(--muted)}
-html,body{overscroll-behavior-y:contain}
-#ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) - 56px);transform:translate(-50%,0);z-index:25;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:6px 14px 6px 8px;display:flex;align-items:center;gap:8px;font-weight:800;font-size:.85rem;box-shadow:0 4px 14px rgba(0,0,0,.15);pointer-events:none;transition:opacity .2s;opacity:0}
-#ptr svg{width:30px;height:30px}
+.dots i{width:7px;height:7px;border-radius:4px;background:var(--surface-3);transition:width var(--d-ui) var(--ease),background-color var(--d-ui)}
+.dots i.on{width:22px;background:var(--accent)}
+.tour-art{width:96px;height:96px;margin:var(--s-2) auto 0}
+.guide h3{margin-top:var(--s-2)}
+.guide p{color:var(--text-2)}
+.guide .ex{background:var(--accent-soft);border-radius:var(--r-md);padding:var(--s-3) var(--s-4);font-size:var(--t-sm)}
+.guide .ex ul{margin:var(--s-1) 0 0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.guide .ex b{color:var(--accent-text)}
+
+/* ---------- focus mode ---------- */
+.focus{position:fixed;inset:0;z-index:var(--z-focus);background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--s-5);
+  padding:calc(var(--s-6) + env(safe-area-inset-top,0px)) var(--s-6) calc(var(--s-6) + env(safe-area-inset-bottom,0px));text-align:center;animation:fadeIn var(--d-screen) var(--ease)}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.focus .ftask{font-family:var(--font-round);font-size:clamp(22px,6vw,30px);font-weight:800;max-width:520px;overflow-wrap:anywhere;line-height:1.2}
+.ring{position:relative;width:min(68vw,280px);aspect-ratio:1}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:10}
+.ring .track{stroke:var(--surface-3)}
+.ring .bar{stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset .5s linear}
+.ring .time{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.ring .time b{font-family:var(--font-round);font-size:clamp(44px,13vw,60px);font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1}
+.ring .time small{color:var(--text-2);font-size:var(--t-sm)}
+.focus .cheer{color:var(--text-2);min-height:44px;max-width:420px}
+.focus .cheer b{color:var(--text)}
+.focus .actions{display:flex;gap:var(--s-2);flex-wrap:wrap;justify-content:center;width:100%;max-width:440px}
+.focus .actions .btn{flex:1 1 140px}
+.focus .top-x{position:absolute;top:calc(var(--s-3) + env(safe-area-inset-top,0px));right:var(--s-3)}
+.focus .frog{width:52px;height:52px}
+
+/* ---------- celebration ---------- */
+.celebrate{position:fixed;inset:0;z-index:var(--z-toast);display:grid;place-items:center;background:var(--scrim);animation:fadeIn var(--d-ui) var(--ease);padding:var(--s-6)}
+.celebrate .card{align-items:center;text-align:center;padding:var(--s-8) var(--s-6);max-width:340px;width:100%;animation:celebIn 520ms var(--ease-spring);box-shadow:var(--sh-2)}
+.celebrate .badge{width:96px;height:96px;border-radius:50%;background:var(--accent-soft);display:grid;place-items:center;position:relative}
+.celebrate .badge .frog{width:70px;height:70px;animation:hop 700ms var(--ease) 180ms 1}
+.celebrate .badge .tick{position:absolute;right:-2px;bottom:-2px;width:34px;height:34px;border-radius:50%;background:var(--accent);display:grid;place-items:center;box-shadow:0 0 0 4px var(--surface)}
+.celebrate .badge .tick svg{width:18px;height:18px;stroke:var(--accent-ink);stroke-width:3;fill:none;stroke-dasharray:24;stroke-dashoffset:24;animation:draw 380ms var(--ease) 320ms forwards}
+@keyframes celebIn{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:none}}
+@keyframes hop{40%{transform:translateY(-10px)}}
+@keyframes draw{to{stroke-dashoffset:0}}
+
+/* ---------- toast + pull to refresh ---------- */
+.toast{position:fixed;left:50%;bottom:calc(74px + env(safe-area-inset-bottom,0px));transform:translate(-50%,8px);opacity:0;z-index:var(--z-toast);background:var(--text);color:var(--bg);
+  padding:10px 10px 10px 16px;border-radius:var(--r-pill);font-weight:600;font-size:var(--t-sm);max-width:min(92vw,520px);display:flex;align-items:center;gap:var(--s-3);box-shadow:var(--sh-2);transition:opacity var(--d-ui) var(--ease),transform var(--d-ui) var(--ease)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast span{padding-right:6px}
+.toast button{border:none;background:rgba(127,127,127,.25);color:inherit;border-radius:var(--r-pill);min-height:32px;padding:0 12px;font-weight:700}
+#ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) - 56px);transform:translate(-50%,0);z-index:var(--z-ptr);background:var(--surface);border:1px solid var(--border);border-radius:var(--r-pill);
+  padding:6px 14px 6px 8px;display:flex;align-items:center;gap:8px;font-weight:650;font-size:var(--t-sm);box-shadow:var(--sh-2);pointer-events:none;transition:opacity .2s;opacity:0}
+#ptr svg{width:28px;height:28px}
 #ptr.spin svg{animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){#ptr.spin svg{animation:none}}
-.toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;z-index:30;max-width:90vw;text-align:center}
-html,body{margin:0}
-:root{padding-top:env(safe-area-inset-top,0px)}
-[hidden]{display:none!important}
+
+/* ---------- Today layout ---------- */
+.today-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s-4)}
+.col{display:flex;flex-direction:column;gap:var(--s-4);min-width:0}
+
+/* ---------- tablet + desktop ---------- */
+@media (min-width:700px){
+  #app{max-width:720px}
+  #layer .sheet{left:50%;right:auto;bottom:50%;width:min(560px,92vw);max-height:min(82vh,760px);border-radius:var(--r-xl);transform:translate(-50%,calc(50% + 24px));opacity:0;transition:transform var(--d-sheet) var(--ease),opacity var(--d-ui)}
+  #layer.open .sheet{transform:translate(-50%,50%);opacity:1}
+  #layer.closing .sheet{transform:translate(-50%,calc(50% + 16px));opacity:0}
+  .grab{display:none}
+  .sheet-head{padding-top:var(--s-5)}
+  .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+}
+@media (min-width:1024px){
+  body{padding-left:calc(104px + env(safe-area-inset-left,0px));padding-bottom:var(--s-8)}
+  nav.tabs{top:0;right:auto;width:88px;border-top:none;border-right:1px solid var(--border);padding:calc(var(--s-6) + env(safe-area-inset-top,0px)) 0 var(--s-6)}
+  nav.tabs .in{grid-template-columns:1fr;grid-auto-rows:min-content;gap:var(--s-2)}
+  nav.tabs button{min-height:64px}
+  #app{max-width:1080px;padding-top:var(--s-8)}
+  .today-grid{grid-template-columns:minmax(0,1fr) 360px;align-items:start}
+  .col.aside{position:sticky;top:var(--s-6)}
+  .toast{bottom:var(--s-6)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-4);align-items:start}
+}
+
+/* ---------- reduced motion ---------- */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
 </style>
 </head>
 <body>
 
-<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
   <symbol id="frog" viewBox="0 0 100 100">
     <ellipse cx="50" cy="62" rx="40" ry="30" fill="#3fa45f"/>
     <ellipse cx="50" cy="70" rx="26" ry="16" fill="#bfe6a8"/>
@@ -250,18 +537,56 @@ html,body{margin:0}
     <path d="M62 35 Q70 28 78 35" stroke="#1d2b1f" stroke-width="3.5" fill="none" stroke-linecap="round"/>
     <path d="M30 54 Q50 78 70 54 Z" fill="#1d2b1f"/><path d="M40 62 Q50 70 60 62" fill="#e8706a"/>
   </symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M9 5.5v13M15 5.5v13"/></symbol>
+  <symbol id="i-slice" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 21c-3.9 0-6.5-2.6-6.5-6.2 0-3.4 2.4-5.4 3.6-8.3.4 1.9 1.4 3 2.4 3.6C11.8 7.3 13 4.6 15.3 3c-.2 3 1.5 4.5 2.4 6.1.6 1.1.8 2.3.8 3.7 0 4.6-2.6 8.2-6.5 8.2z"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-4-4L4 16z"/></symbol>
+  <symbol id="i-bag" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="13" rx="3"/><path d="M9 7V5.5a3 3 0 0 1 6 0V7"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.8M12 17.2v.1"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9.5" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18.5h10a4 4 0 0 0 .5-8 5.5 5.5 0 0 0-10.6 1.6A3.3 3.3 0 0 0 7 18.5z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4M7 8.5l5-5 5 5M5 20h14"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15M10 16l4-4-4-4M14 12H4"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5zM20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5z"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/></symbol>
+  <symbol id="i-today" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M8 7.5a2.2 2.2 0 1 1 3-2M16 7.5a2.2 2.2 0 1 0-3-2M9 15c1.6 1.4 4.4 1.4 6 0"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M5 18.5V6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v7a2.5 2.5 0 0 1-2.5 2.5H9z"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l8-8M16 7l2.5 2.5"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.3 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/></symbol>
 </svg>
 
-<div class="wrap" id="app"></div>
+<main id="app" aria-live="off"></main>
 <div id="layer"></div>
 <div id="ptr" aria-hidden="true"><svg><use href="#frog"/></svg><span id="ptr-t">Pull to refresh</span></div>
 
 <nav class="tabs" aria-label="Sections"><div class="in">
-  <button data-tab="today" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M8 7.5a2.2 2.2 0 1 1 3-2M16 7.5a2.2 2.2 0 1 0-3-2M9 15c1.6 1.4 4.4 1.4 6 0"/></svg>Today</button>
-  <button data-tab="lists" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.3"/><circle cx="4.5" cy="12" r="1.3"/><circle cx="4.5" cy="18" r="1.3"/></svg>Lists</button>
-  <button data-tab="goals" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>Goals</button>
-  <button data-tab="me" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>Me</button>
-  <button data-tab="rules" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5zM20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg>21 Rules</button>
+  <button data-tab="today" aria-current="page" aria-selected="true"><span class="pill"><svg class="ic"><use href="#i-today"/></svg></span>Today</button>
+  <button data-tab="lists" aria-selected="false"><span class="pill"><svg class="ic"><use href="#i-list"/></svg></span>Lists</button>
+  <button data-tab="goals" aria-selected="false"><span class="pill"><svg class="ic"><use href="#i-target"/></svg></span>Goals</button>
+  <button data-tab="me" aria-selected="false"><span class="pill"><svg class="ic"><use href="#i-user"/></svg></span>Me</button>
+  <button data-tab="rules" aria-selected="false"><span class="pill"><svg class="ic"><use href="#i-book"/></svg></span>21 Rules</button>
 </div></nav>
 
 <script>
@@ -392,9 +717,9 @@ function stamp(){
 function commit(){ fixRanks(); prune(); stamp(); saveLocal(); render(); schedulePush(); }
 function quietCommit(){ stamp(); saveLocal(); schedulePush(); }
 function setSync(m){ if(m) syncMode=m; const el=document.getElementById("sync"); if(!el) return;
-  const L={local:"On this device · tap to sync",synced:"Synced",saving:"Syncing…",offline:"Offline · saved on device",locked:"Locked · tap to unlock",error:"Sync problem · tap"};
-  el.className="sync"+(syncMode==="synced"?" ok":"");
-  el.textContent=L[syncMode]||L.local;
+  const L={local:"On this device",synced:"Synced",saving:"Syncing…",offline:"Offline",locked:"Locked",error:"Sync paused"};
+  el.setAttribute("data-s",syncMode); el.innerHTML=`<span class="dot"></span><span>${L[syncMode]||L.local}</span>`;
+  el.setAttribute("aria-label","Sync: "+(L[syncMode]||L.local)+". Open sync settings");
 }
 
 // ================= HELPERS =================
@@ -407,101 +732,215 @@ function streak(){let n=0;const d=new Date();if(!state.frogLog[dkey(d)]) d.setDa
 function todayHabits(){const k=dkey();return state.habits[k]||(state.habits[k]={})}
 function majorGoal(){return state.goals.find(g=>g.major)}
 function nextBarrel(g){return g&&g.steps.find(s=>!s.done)}
-function toast(msg){const old=document.querySelector(".toast");if(old)old.remove();const t=document.createElement("div");t.className="toast";t.setAttribute("role","status");t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
+let toastTimer=null;
+function toast(msg,action){
+  const old=document.querySelector(".toast"); if(old) old.remove(); clearTimeout(toastTimer);
+  const t=document.createElement("div"); t.className="toast"; t.setAttribute("role","status"); t.setAttribute("aria-live","polite");
+  const sp=document.createElement("span"); sp.textContent=msg; t.appendChild(sp);
+  if(action){ const b=document.createElement("button"); b.type="button"; b.textContent=action.label; b.addEventListener("click",ev=>{ ev.stopPropagation(); t.remove(); action.fn(); }); t.appendChild(b); }
+  document.body.appendChild(t); requestAnimationFrame(()=>t.classList.add("show"));
+  toastTimer=setTimeout(()=>{ t.classList.remove("show"); setTimeout(()=>t.remove(),250); },action?4500:2600);
+}
 function letterLabel(t){return t.letter==="A"&&!t.done&&t.rank?"A-"+t.rank:(t.letter||"?")}
 
-// ================= EASY MODE: help boxes, "do this now", letter picker, tour, plan wizard =================
-function help(title,items){ return `<details class="card help"><summary>❓ ${title}</summary><ol class="steps">${items.map(x=>`<li>${x}</li>`).join("")}</ol></details>`; }
+// ================= PRESENTATION (Frog Pond 2.0) =================
+// Everything below only builds markup and handles UI motion. Data changes still go through
+// the same actions (data-act / data-form) and commit() as before.
+const I=(name,cls)=>`<svg class="ic${cls?" "+cls:""}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+const FROG=(full,cls)=>`<svg class="${cls||"frog"}" aria-hidden="true"><use href="#${full?"frogfull":"frog"}"/></svg>`;
+const reduceMotion=()=>!!(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches);
+const CHECK=`<i><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7"/></svg></i>`;
+
+const discKey=t=>String(t).replace(/<[^>]*>/g,"").replace(/[^A-Za-z0-9]+/g,"-").slice(0,40);
+const discOpen=(k,def)=>ui.discs&&k in ui.discs?ui.discs[k]:!!def;
+function help(title,items){ const k="h-"+discKey(title); return `<details class="disc help" data-k="${k}"${discOpen(k,false)?" open":""}><summary>${I("help")}<span>${title}</span>${I("chev","chev")}</summary><div class="disc-body"><ol class="steps">${items.map(x=>`<li>${x}</li>`).join("")}</ol></div></details>`; }
+function disc(icon,title,body,open,extra){ const k="d-"+discKey(title); return `<details class="disc" data-k="${k}"${discOpen(k,open)?" open":""}${extra||""}><summary>${I(icon)}<span>${title}</span>${I("chev","chev")}</summary><div class="disc-body">${body}</div></details>`; }
+function emptyState(title,text,btn){ return `<div class="empty">${FROG(false)}<b>${title}</b><p>${text}</p>${btn||""}</div>`; }
+
+// ---- "Do this now" guide (same decision logic as before) ----
 function nextStep(){
   const today=dkey(), hour=new Date().getHours(), eaten=!!state.frogLog[today];
   const open=state.tasks.filter(t=>t.list==="day"&&!t.done);
   const noLetter=open.filter(t=>!t.letter);
   const f=a1(); const planDone=!!(todayHabits().plan);
-  if(hour>=21&&!planDone) return {k:"9 pm: planning time",what:"Plan tomorrow. It takes 10 minutes.",btn:"Start planning",act:"wizard"};
-  if(!open.length&&!eaten) return {k:"Start here",what:"Write down what you need to do today.",btn:"Add a job",act:"focusadd"};
-  if(noLetter.length) return {k:"Next",what:`Give a letter to “${noLetter[0].text}”. Is it a must-do (A) or not?`,btn:"Choose letter",act:"letter",id:noLetter[0].id};
-  if(!f&&!eaten) return {k:"Next",what:"Pick your frog: give your most important job the letter A.",btn:"Choose a job",act:"letter",id:open[0].id};
-  if(f&&!eaten) return {k:"Do this now",what:`Eat your frog: “${f.text}”. Nothing else first.`,btn:"Start eating",act:"focus",id:f.id};
+  if(hour>=21&&!planDone) return {k:"9 pm · planning time",what:"Plan tomorrow. It takes 10 minutes.",btn:"Start planning",act:"wizard",kind:"plan"};
+  if(!open.length&&!eaten) return {k:"Start here",what:"Write down what you need to do today.",btn:"Add a job",act:"focusadd",kind:"empty"};
+  if(noLetter.length) return {k:"Next step",what:`Give a letter to “${noLetter[0].text}”. Is it a must-do (A) or not?`,btn:"Choose letter",act:"letter",id:noLetter[0].id,kind:"letter"};
+  if(!f&&!eaten) return {k:"Next step",what:"Pick your frog: give your most important job the letter A.",btn:"Choose a job",act:"letter",id:open[0].id,kind:"letter"};
+  if(f&&!eaten) return {k:"Do this now",what:`Eat your frog: “${f.text}”. Nothing else first.`,btn:"Start eating",act:"focus",id:f.id,kind:"frog"};
   const nx=open.filter(t=>t.letter!=="E"&&t.letter!=="D").sort((a,b)=>(order[a.letter]-order[b.letter])||(a.rank-b.rank))[0];
-  if(nx) return {k:"Next job",what:`Frog eaten 🎉 Next: “${nx.text}”.`,btn:"Start timer",act:"focus",id:nx.id};
-  return hour>=21?{k:"All done",what:"Today's list is done. Now plan tomorrow.",btn:"Start planning",act:"wizard"}:{k:"All done",what:"Today's list is done 🎉 Planning for tomorrow opens at 9 pm.",btn:"Add another job",act:"focusadd"};
+  if(nx) return {k:"Next job",what:`Frog eaten. Next: “${nx.text}”.`,btn:"Start timer",act:"focus",id:nx.id,kind:"next"};
+  return hour>=21?{k:"All done",what:"Today's list is done. Now plan tomorrow.",btn:"Start planning",act:"wizard",kind:"plan"}:{k:"All done",what:"Today's list is done. Planning for tomorrow opens at 9 pm.",btn:"Add another job",act:"focusadd",kind:"done"};
 }
-function nextCard(){ const n=nextStep(); return `<section class="nextcard" aria-live="polite"><span class="k">${n.k}</span><div class="what">${esc(n.what)}</div><button class="btn primary" data-act="${n.act}" ${n.id?`data-id="${n.id}"`:""}>${n.btn}</button></section>`; }
+function bestStreak(){ const ds=Object.keys(state.frogLog).filter(k=>state.frogLog[k]).sort(); let best=0,cur=0,prev=null;
+  ds.forEach(k=>{ const d=new Date(k+"T12:00:00"); cur=(prev&&Math.round((d-prev)/864e5)===1)?cur+1:1; best=Math.max(best,cur); prev=d; }); return best; }
+function greeting(){ const h=new Date().getHours(); return h<12?"Good morning":h<17?"Good afternoon":"Good evening"; }
 
 const LMEAN={A:["Must do","Big results if done, big trouble if not. Your frogs."],B:["Should do","Small results. A tadpole. Only after all A jobs."],C:["Nice to do","No real results either way."],D:["Give away","Someone else can do it. Ask them."],E:["Throw away","Not worth doing. Delete it or put it on Not doing."]};
-const LCOL={A:"var(--a)",B:"var(--b)",C:"var(--c)",D:"var(--d)",E:"var(--e)"};
-function openLetterPicker(id){
-  const t=byId(id); if(!t) return;
-  layer.innerHTML=`<div class="overlay" data-close="1"><div class="box" role="dialog" aria-label="Choose a letter">
-    <h2>What kind of job is it?</h2><p class="small muted overflow">“${esc(t.text)}”</p>
-    <div class="lpick">${["A","B","C","D","E"].map(l=>`<button data-pick="${l}" data-id="${t.id}" aria-pressed="${t.letter===l}"><b class="l" style="background:${LCOL[l]}">${l}</b><span><b>${LMEAN[l][0]}</b><small>${LMEAN[l][1]}</small></span></button>`).join("")}</div>
-    <div class="row"><button class="btn ghost tiny" data-pick="" data-id="${t.id}">No letter</button><button class="btn ghost" data-close="1">Cancel</button></div>
-    <p class="small muted">Not sure? Ask: what happens if I do it, and what happens if I don't? (Rule 4)</p></div></div>`;
+const LIST_ICON={master:"bulb",month:"cal",week:"list",day:"today",no:"x"};
+
+document.addEventListener("toggle",e=>{ const d=e.target; if(d&&d.tagName==="DETAILS"&&d.dataset.k){ ui.discs=ui.discs||{}; ui.discs[d.dataset.k]=d.open; } },true);
+// ================= SHEETS (bottom sheet on phone, centered dialog on desktop) =================
+const layer=document.getElementById("layer");
+let layerToken=0, sheetOpener=null;
+function lockScroll(on){ document.documentElement.classList.toggle("locked",!!on); }
+function focusables(root){ return [...root.querySelectorAll('button:not([disabled]),[href],input:not([disabled]):not([type=hidden]),select,textarea,[tabindex]:not([tabindex="-1"])')].filter(el=>el.offsetParent!==null||el===document.activeElement); }
+function sheetMarkup(c){
+  return `<div class="grab" aria-hidden="true"></div>
+    <div class="sheet-head"><div class="t">${c.eyebrow?`<div class="eyebrow">${c.eyebrow}</div>`:""}<h2 id="sheet-title">${c.title}</h2>${c.sub?`<p class="muted small">${c.sub}</p>`:""}</div>
+      ${c.noX?"":`<button class="icon-btn" data-close="1" aria-label="Close">${I("x")}</button>`}</div>
+    <div class="sheet-body">${c.body}</div>`;
 }
+function sheetContent(s){
+  if(s.kind==="task") return taskSheet(byId(s.id));
+  if(s.kind==="letter") return letterSheet(byId(s.id));
+  if(s.kind==="wiz") return wizSheet();
+  if(s.kind==="tour") return tourSheet(s.n||0);
+  if(s.kind==="guide") return guideSheet();
+  if(s.kind==="prep") return prepSheet(s.id?byId(s.id):null);
+  return null;
+}
+function openSheet(kind,opts){
+  const s=Object.assign({kind},opts||{}); const c=sheetContent(s); if(!c) return;
+  const replacing=!!layer.querySelector(".sheet")&&!layer.classList.contains("closing");
+  ui.sheet=s; layerToken++;
+  if(!replacing){ const ae=document.activeElement; sheetOpener=ae&&ae.dataset?{act:ae.dataset.act,id:ae.dataset.id}:null; }
+  layer.className=replacing?"open":"";
+  layer.innerHTML=`<div class="scrim" data-close="1"></div><div class="sheet${c.cls?" "+c.cls:""}" role="dialog" aria-modal="true" aria-labelledby="sheet-title" tabindex="-1">${sheetMarkup(c)}</div>`;
+  lockScroll(true);
+  if(!replacing) requestAnimationFrame(()=>requestAnimationFrame(()=>layer.classList.add("open")));
+  const sh=layer.querySelector(".sheet");
+  setTimeout(()=>{ const f=c.focus?sh.querySelector(c.focus):null; (f||sh).focus({preventScroll:true}); },replacing?0:60);
+}
+function refreshSheet(){
+  if(!ui.sheet) return; const sh=layer.querySelector(".sheet"); if(!sh||layer.classList.contains("closing")) return;
+  const c=sheetContent(ui.sheet); if(!c){ closeLayer(); return; }
+  const ae=document.activeElement, aid=ae&&sh.contains(ae)?ae.id:null;
+  const typing=aid&&(ae.tagName==="INPUT"||ae.tagName==="TEXTAREA")&&!keepCleared?{v:ae.value,s:ae.selectionStart,e:ae.selectionEnd}:null;
+  const body=sh.querySelector(".sheet-body"), st=body?body.scrollTop:0;
+  sh.innerHTML=sheetMarkup(c);
+  const nb=sh.querySelector(".sheet-body"); if(nb) nb.scrollTop=st;
+  if(aid){ const el=sh.querySelector("#"+CSS.escape(aid)); if(el){ el.focus({preventScroll:true}); if(typing&&el.value!==typing.v){ el.value=typing.v; try{el.setSelectionRange(typing.s,typing.e)}catch(x){} } } }
+  else if(c.focus&&ui.wizFocus){ const el=sh.querySelector(c.focus); if(el) el.focus({preventScroll:true}); ui.wizFocus=false; }
+}
+function closeLayer(){
+  stopTimer(); ui.wiz=null; ui.sheet=null; const tok=++layerToken;
+  const hasSheet=!!layer.querySelector(".sheet");
+  const finish=()=>{ if(tok!==layerToken) return; layer.innerHTML=""; layer.className=""; lockScroll(false);
+    if(sheetOpener){ const sel=`[data-act="${sheetOpener.act}"]`+(sheetOpener.id?`[data-id="${sheetOpener.id}"]`:""); const el=sheetOpener.act&&document.querySelector(sel); if(el) el.focus({preventScroll:true}); sheetOpener=null; } };
+  if(hasSheet&&!reduceMotion()){ layer.classList.remove("open"); layer.classList.add("closing"); setTimeout(finish,210); } else finish();
+}
+document.addEventListener("keydown",e=>{
+  if(!layer.innerHTML) return;
+  const dlg=layer.querySelector('[role="dialog"]'); if(!dlg) return;
+  if(e.key==="Escape"){ e.preventDefault(); closeLayer(); return; }
+  if(e.key==="Tab"){ const f=focusables(dlg); if(!f.length) return; const first=f[0], last=f[f.length-1];
+    if(e.shiftKey&&(document.activeElement===first||!dlg.contains(document.activeElement))){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey&&document.activeElement===last){ e.preventDefault(); first.focus(); } }
+});
+
+// ---- sheet: task actions + edit ----
+function taskSheet(t){
+  if(!t) return null;
+  const aList=state.tasks.filter(x=>x.list===t.list&&x.letter==="A"&&!x.done).sort((a,b)=>a.rank-b.rank);
+  const sl=t.slices||[]; const listName=(LISTS.find(l=>l.id===t.list)||{}).name||"";
+  const moves=LISTS.filter(l=>l.id!==t.list).map(l=>`<button class="btn btn-sm btn-secondary" data-act="move" data-to="${l.id}" data-id="${t.id}" data-close="1">${I(LIST_ICON[l.id])}${l.id==="week"&&t.list==="day"?"Not today → Week":l.name}</button>`).join("");
+  const body=`
+    <form class="add" data-form="rename" data-id="${t.id}"><label class="sr" for="ts-title">Job name</label><input class="input" id="ts-title" value="${esc(t.text)}" maxlength="300" autocomplete="off"><button class="btn btn-secondary">Save</button></form>
+    <div class="stack"><div class="sec-title">Priority</div>
+      <div class="minil" role="group" aria-label="Priority">${["A","B","C","D","E"].map(l=>`<button data-act="setletter" data-id="${t.id}" data-l="${l}" aria-pressed="${t.letter===l}" aria-label="${l}: ${LMEAN[l][0]}">${l}</button>`).join("")}<button data-act="setletter" data-id="${t.id}" data-l="" aria-pressed="${!t.letter}" aria-label="No letter">–</button></div>
+      <p class="xs muted">${t.letter?`<b>${t.letter}</b> · ${LMEAN[t.letter][0]}. ${LMEAN[t.letter][1]}`:"A must do · B should do · C nice to do · D give away · E throw away"}</p>
+      ${t.letter==="A"&&!t.done&&aList.length>1?`<div class="spread"><span class="small">Order: <b>A-${t.rank}</b> of ${aList.length}${t.list==="day"&&t.rank===1?" · your frog":""}</span><span class="row" style="flex-wrap:nowrap"><button class="btn btn-sm btn-secondary" data-act="up" data-id="${t.id}" ${t.rank===1?"disabled":""}>${I("up")}Up</button><button class="btn btn-sm btn-secondary" data-act="down" data-id="${t.id}" ${t.rank===aList.length?"disabled":""}>${I("down")}Down</button></span></div>`:""}
+    </div>
+    <div class="opt-list">
+      ${!t.done?`<button class="opt" data-act="focus" data-id="${t.id}">${I("timer")}<span class="txt">Start focus timer<small>10, 30, 60 or 90 minutes</small></span>${I("chev","chev")}</button>`:""}
+      <button class="opt" data-act="done" data-id="${t.id}" data-close="1">${I("check")}<span class="txt">${t.done?"Mark as not done":"Mark as done"}</span></button>
+      <button class="opt" data-act="aislice" data-id="${t.id}">${I("spark")}<span class="txt">AI: slice it for me<small>${ai?"Free Gemini helper":"Add a free Gemini key in Me → Settings"}</small></span></button>
+    </div>
+    <div class="stack"><div class="sec-title">Slices${sl.length?` · ${sl.filter(s=>s.done).length} of ${sl.length} done`:""}</div>
+      ${sl.length?`<ul class="steplist">${sl.map(s=>`<li class="${s.done?"done":""}"><button class="check ${s.done?"on":""}" aria-label="Slice done: ${esc(s.text)}" data-act="slicedone" data-id="${t.id}" data-s="${s.id}">${CHECK}</button><span class="txt">${esc(s.text)}</span><button class="icon-btn" aria-label="Remove slice" data-act="slicedel" data-id="${t.id}" data-s="${s.id}">${I("x")}</button></li>`).join("")}</ul>`:`<p class="small muted">Big job? Cut it into thin slices of 5 to 25 minutes and do one. (Rule 18)</p>`}
+      <form class="add" data-form="slice" data-id="${t.id}"><label class="sr" for="slice-in">New slice</label><input class="input" id="slice-in" placeholder="Add a thin slice…" autocomplete="off"><button class="btn btn-secondary" aria-label="Add slice">${I("plus")}</button></form>
+    </div>
+    <form class="stack" data-form="edit" data-id="${t.id}"><div class="sec-title">Deadline &amp; get ready</div>
+      <label class="field">Deadline (Rule 13)<input type="date" id="due-in" value="${esc(t.due)}"></label>
+      <label class="field">What I need ready before I start (Rule 8)<input id="need-in" value="${esc(t.need)}" placeholder="Laptop, notes, water…"></label>
+      <button class="btn btn-secondary">Save</button></form>
+    <div class="stack"><div class="sec-title">Move to</div><div class="row">${moves}</div></div>
+    <div class="opt-list"><button class="opt danger" data-act="del" data-id="${t.id}" data-close="1">${I("trash")}<span class="txt">Delete job</span></button></div>`;
+  return {title:"Edit job",eyebrow:`${listName}${t.list==="day"&&t===a1()?" · 🐸 frog":""}`,body};
+}
+function openTaskSheet(id){ if(byId(id)) openSheet("task",{id}); }
+
+// ---- sheet: letter picker ----
+function letterSheet(t){
+  if(!t) return null;
+  return {title:"What kind of job is it?",sub:`“${esc(t.text)}”`,body:`
+    <div class="lpick">${["A","B","C","D","E"].map(l=>`<button data-pick="${l}" data-id="${t.id}" aria-pressed="${t.letter===l}"><span class="prio" data-l="${l}">${l}</span><span class="txt"><b>${LMEAN[l][0]}</b><small>${LMEAN[l][1]}</small></span></button>`).join("")}</div>
+    <button class="btn btn-ghost" data-pick="" data-id="${t.id}">No letter</button>
+    <p class="small muted">Not sure? Ask: what happens if I do it, and what happens if I don't? (Rule 4)</p>`};
+}
+function openLetterPicker(id){ if(byId(id)) openSheet("letter",{id}); }
+
+// ---- sheet: onboarding (4 screens) ----
 const TOUR=[
-  ["Welcome to Frog Pond 🐸","Your <b>frog</b> is your hardest, most important job: the one you most want to put off. This app helps you do it <b>first, every morning</b>."],
-  ["1. Write your jobs","Put every job on a list. Today's jobs go on the <b>Today</b> tab. Bigger plans go on <b>Lists</b> (week, month, some day)."],
-  ["2. Give each job a letter","<b>A</b> must do · <b>B</b> should do · <b>C</b> nice to do · <b>D</b> give away · <b>E</b> throw away. Your top A job (<b>A-1</b>) is your frog."],
-  ["3. Eat the frog first","Each morning tap <b>Start eating</b>, work only on the frog, then tap <b>I ate my frog!</b> Do it 21 days in a row and it becomes a habit."],
-  ["4. Plan tomorrow at 9 pm","Every night after 9 pm the yellow box asks you to plan tomorrow. The app walks you through it in 10 minutes."],
-  ["Not sure what to do?","Look at the <b>yellow \"Do this now\" box</b> at the top of Today. It always shows your next step. Turn on sync in the <b>Me</b> tab to use it on all your devices."]
+  ["Welcome to Frog Pond","Every day you choose one important job and do it <b>first</b>. That's the whole idea.",false],
+  ["Your frog","Your <b>frog</b> is your hardest, most important job: the one you most want to put off. Give it the letter <b>A</b>. The top A job (<b>A-1</b>) is your frog.",false],
+  ["Eat it first","Each morning tap <b>Start focus</b> and work only on the frog. Then tap <b>I ate my frog</b>. 21 days in a row and it becomes a habit.",true],
+  ["Prepare tomorrow tonight","After 9 pm the app walks you through planning tomorrow in 10 minutes. The big card on Today always shows your next step.",true]
 ];
-function openTour(n){
-  n=Math.max(0,Math.min(TOUR.length-1,n||0)); const last=n===TOUR.length-1;
-  layer.innerHTML=`<div class="overlay"><div class="box center" role="dialog" aria-label="Welcome tour">
-    <svg class="frogsvg" aria-hidden="true"><use href="#frog"/></svg><h2>${TOUR[n][0]}</h2><p>${TOUR[n][1]}</p>
-    <div class="dots">${TOUR.map((_,i)=>`<i class="${i===n?"on":""}"></i>`).join("")}</div>
-    <div class="row" style="justify-content:center">${n?`<button class="btn ghost" data-tour="${n-1}">Back</button>`:`<button class="btn ghost" data-tourdone="1">Skip</button>`}
-    ${last?`<button class="btn primary" data-tourdone="1">Let's start</button>`:`<button class="btn primary" data-tour="${n+1}">Next</button>`}</div></div></div>`;
+function tourSheet(n){
+  n=Math.max(0,Math.min(TOUR.length-1,n)); const last=n===TOUR.length-1;
+  return {title:TOUR[n][0],cls:"center",noX:true,body:`
+    ${FROG(TOUR[n][2],"tour-art")}<p class="muted" style="max-width:380px">${TOUR[n][1]}</p>
+    <div class="dots" aria-label="Screen ${n+1} of ${TOUR.length}">${TOUR.map((_,i)=>`<i class="${i===n?"on":""}"></i>`).join("")}</div>
+    <div class="sheet-foot" style="width:100%">${n?`<button class="btn btn-ghost" data-tour="${n-1}">Back</button>`:`<button class="btn btn-ghost" data-tourdone="1">Skip</button>`}
+    ${last?`<button class="btn btn-primary" data-tourdone="1">Start</button>`:`<button class="btn btn-primary" data-tour="${n+1}">Next</button>`}</div>`};
 }
+function openTour(n){ openSheet("tour",{n:n||0}); }
+
+// ---- sheet: plan-tomorrow wizard (same 6 steps) ----
 const WIZ=["Clear finished jobs","Add tomorrow's jobs","Give each job a letter","Order your A jobs","Get ready","All set"];
-function openWizard(step){ ui.wiz=step||0; renderWiz(); }
-function renderWiz(){
-  if(ui.wiz==null) return;
+function openWizard(step){ ui.wiz=step||0; openSheet("wiz"); }
+function renderWiz(){ if(ui.wiz==null) return; if(ui.sheet&&ui.sheet.kind==="wiz"&&layer.querySelector(".sheet")) refreshSheet(); else openSheet("wiz"); }
+function wizSheet(){
+  if(ui.wiz==null) return null;
   const n=ui.wiz, day=state.tasks.filter(t=>t.list==="day"&&!t.done), doneN=state.tasks.filter(t=>t.list==="day"&&t.done).length;
   const as=day.filter(t=>t.letter==="A").sort((a,b)=>a.rank-b.rank), f=as[0];
   let body="";
-  if(n===0) body=`<p>Finished jobs leave the list. Unfinished jobs stay for tomorrow.</p><p><b>${doneN}</b> finished job${doneN===1?"":"s"} on today's list.</p>${doneN?`<button class="btn" data-act="clearDone">Clear ${doneN} finished</button>`:""}`;
+  if(n===0) body=`<p>Finished jobs leave the list. Unfinished jobs stay for tomorrow.</p><div class="notice">${I("check")}<p><b>${doneN}</b> finished job${doneN===1?"":"s"} on today's list.</p>${doneN?`<button class="btn btn-sm btn-primary" data-act="clearDone">Clear</button>`:""}</div>`;
   if(n===1){ const wk=state.tasks.filter(t=>t.list==="week"&&!t.done).slice(0,8);
-    body=`<p>Write everything you must do tomorrow.</p><form class="add" data-form="wizadd"><input id="wiz-in" placeholder="Type a job, tap Add" autocomplete="off" aria-label="New job"><button class="btn primary">Add</button></form>
-    ${day.length?`<p class="small"><b>On tomorrow's list (${day.length}):</b> ${day.map(t=>esc(t.text)).join(" · ")}</p>`:""}
-    ${wk.length?`<p class="small muted">From your week list, tap to add:</p><div class="row">${wk.map(t=>`<button class="btn tiny" data-act="move" data-to="day" data-id="${t.id}">+ ${esc(t.text)}</button>`).join("")}</div>`:""}`; }
-  if(n===2) body=day.length?`<p class="small muted">A must do · B should do · C nice to do · D give away · E throw away</p>${day.map(t=>`<div class="wrow"><span class="wt">${esc(t.text)}</span><div class="minil">${["A","B","C","D","E"].map(l=>`<button data-act="setletter" data-id="${t.id}" data-l="${l}" aria-pressed="${t.letter===l}" aria-label="${l}: ${LMEAN[l][0]}">${l}</button>`).join("")}</div></div>`).join("")}`:`<p>No jobs yet. Go back one step and add some.</p>`;
-  if(n===3) body=as.length?`<p>Put the most important A job on top. Ask: which one has the biggest result if I do it, or the biggest trouble if I don't? <b>The top one is your frog.</b></p>${as.map((t,i)=>`<div class="wrow"><span class="wt">${i===0?"🐸 ":""}A-${i+1} · ${esc(t.text)}</span>${as.length>1?`<div class="row"><button class="btn tiny" data-act="up" data-id="${t.id}" ${i===0?"disabled":""}>Move up</button><button class="btn tiny" data-act="down" data-id="${t.id}" ${i===as.length-1?"disabled":""}>Move down</button></div>`:""}</div>`).join("")}`:`<p><b>No A job yet.</b> Go back and give your most important job the letter A. Every day needs one frog.</p>`;
-  if(n===4) body=f?`<p>Your frog: <b>${esc(f.text)}</b></p><form class="panel" data-form="wizneed"><label class="f">What do I need ready for it?<input class="in" id="wiz-need" value="${esc(f.need)}" placeholder="Laptop, notes, water…"></label><button class="btn">Save</button></form><p class="small">Now really lay those things out and clear your desk, so you can start the moment you sit down. (Rule 8)</p>`:`<p>Pick a frog first (step 3).</p>`;
-  if(n===5) body=`<p>Your plan is ready${f?`. Tomorrow's frog: <b>${esc(f.text)}</b>`:""}.</p><p>Go to bed early. Your mind works on the plan while you sleep. In the morning, open the app and tap <b>Start eating</b>.</p>`;
-  layer.innerHTML=`<div class="overlay"><div class="box" role="dialog" aria-label="Plan tomorrow">
-    <span class="src">Plan tomorrow · step ${n+1} of ${WIZ.length}</span><h2>${WIZ[n]}</h2>${body}
-    <div class="dots">${WIZ.map((_,i)=>`<i class="${i===n?"on":""}"></i>`).join("")}</div>
-    <div class="row">${n?`<button class="btn ghost" data-act="wiz" data-step="${n-1}">Back</button>`:`<button class="btn ghost" data-act="wizclose">Close</button>`}
-    ${n<WIZ.length-1?`<button class="btn primary" data-act="wiz" data-step="${n+1}">Next</button>`:`<button class="btn primary" data-act="wizfinish">Done, good night</button>`}</div></div></div>`;
-  if(n===1){ const i=document.getElementById("wiz-in"); if(i&&ui.wizFocus){ i.focus(); ui.wizFocus=false; } }
+    body=`<p>Write everything you must do tomorrow.</p><form class="add" data-form="wizadd"><label class="sr" for="wiz-in">New job</label><input class="input" id="wiz-in" placeholder="Type a job…" autocomplete="off"><button class="btn btn-primary">Add</button></form>
+    ${day.length?`<div class="stack"><div class="sec-title">On tomorrow's list · ${day.length}</div><p class="small muted">${day.map(t=>esc(t.text)).join(" · ")}</p></div>`:""}
+    ${wk.length?`<div class="stack"><div class="sec-title">From your week list</div><div class="row">${wk.map(t=>`<button class="btn btn-sm btn-secondary" data-act="move" data-to="day" data-id="${t.id}">${I("plus")}${esc(t.text)}</button>`).join("")}</div></div>`:""}`; }
+  if(n===2) body=day.length?`<p class="small muted">A must do · B should do · C nice to do · D give away · E throw away</p><div>${day.map(t=>`<div class="wrow"><span class="wt">${esc(t.text)}</span><div class="minil">${["A","B","C","D","E"].map(l=>`<button data-act="setletter" data-id="${t.id}" data-l="${l}" aria-pressed="${t.letter===l}" aria-label="${l}: ${LMEAN[l][0]}">${l}</button>`).join("")}</div></div>`).join("")}</div>`:`<div class="notice">${I("help")}<p>No jobs yet. Go back one step and add some.</p></div>`;
+  if(n===3) body=as.length?`<p>Put the most important A job on top. Which one has the biggest result if done, or the biggest trouble if not? <b>The top one is your frog.</b></p><div>${as.map((t,i)=>`<div class="wrow"><span class="wt">${i===0?"🐸 ":""}A-${i+1} · ${esc(t.text)}</span>${as.length>1?`<div class="row"><button class="btn btn-sm btn-secondary" data-act="up" data-id="${t.id}" ${i===0?"disabled":""}>${I("up")}Up</button><button class="btn btn-sm btn-secondary" data-act="down" data-id="${t.id}" ${i===as.length-1?"disabled":""}>${I("down")}Down</button></div>`:""}</div>`).join("")}</div>`:`<div class="notice">${I("help")}<p><b>No A job yet.</b> Go back and give your most important job the letter A. Every day needs one frog.</p></div>`;
+  if(n===4) body=f?`<p>Your frog: <b>${esc(f.text)}</b></p><form class="stack" data-form="wizneed"><label class="field">What do I need ready for it?<input id="wiz-need" value="${esc(f.need)}" placeholder="Laptop, notes, water…"></label><button class="btn btn-secondary">Save</button></form><p class="small muted">Now lay those things out and clear your desk, so you can start the moment you sit down. (Rule 8)</p>`:`<div class="notice">${I("help")}<p>Pick a frog first (step 4).</p></div>`;
+  if(n===5) body=`<div class="empty" style="padding:var(--s-2) 0">${FROG(true)}<b>Your plan is ready</b><p>${f?`Tomorrow's frog: <b>${esc(f.text)}</b>. `:""}Go to bed early. In the morning, open the app and tap <b>Start focus</b>.</p></div>`;
+  body+=`<div class="sheet-foot">${n?`<button class="btn btn-ghost" data-act="wiz" data-step="${n-1}">Back</button>`:`<button class="btn btn-ghost" data-act="wizclose">Close</button>`}
+    ${n<WIZ.length-1?`<button class="btn btn-primary" data-act="wiz" data-step="${n+1}">Next</button>`:`<button class="btn btn-primary" data-act="wizfinish">Done, good night</button>`}</div>`;
+  return {title:WIZ[n],eyebrow:`Plan tomorrow · step ${n+1} of ${WIZ.length}`,focus:n===1?"#wiz-in":null,
+    body:`<div class="steps-bar" aria-hidden="true">${WIZ.map((_,i)=>`<i class="${i<=n?"on":""}"></i>`).join("")}</div>${body}`};
 }
 
-function accountLine(){
-  if(typeof fbUser==="undefined") return "";
-  return fbUser?`<button class="acct" data-act="gosync" title="Account">👤 ${esc(fbUser.email||"Google account")}</button>`
-               :`<button class="acct off" data-act="gosync">👤 Not signed in · tap to sign in</button>`;
-}
-// ================= USER GUIDE (Me → Settings) =================
+// ---- sheet: daily guide ----
 const GUIDE=[
  ["The idea in one line","Every day, find your most important, hardest job (your frog). Do it first, before anything else. Everything in the app helps with that.",[]],
  ["Morning: eat the frog",
-  "Open the app. The yellow box says <b>Eat your frog</b>. Tap <b>Start eating</b>, tick the get-ready boxes, pick a time, and work only on that job. When done, tap <b>I ate my frog!</b>",
+  "Open the app. The big card says <b>Eat your frog</b>. Tap <b>Start focus</b>, tick the get-ready boxes, pick a time, and work only on that job. When done, tap <b>I ate my frog</b>.",
   ["<b>Job seeker:</b> frog = \"Fix my resume for MLOps roles\". 90-minute timer, phone face down. Done by 9 am → I ate my frog!",
    "<b>Student:</b> frog = \"Study chapter 4 for Friday's exam\". Feeling lazy? Pick 10 minutes. Usually you keep going.",
    "<b>At home:</b> frog = \"Pay the rent and file the insurance form\". 30 minutes, then the rest of the day feels light."]],
  ["During the day: add, letter, finish",
-  "Something new comes up? Add it to Today first, then tap its letter box. Do A jobs before B, and B before C. Tap the circle when a job is done.",
+  "Something new comes up? Add it to Today first, then tap its letter. Do A jobs before B, and B before C. Tap the circle (or swipe right) when a job is done. Tap a job (or swipe left) for more.",
   ["Recruiter emails asking for references → add \"Send references\" → <b>A</b> (big result if done).",
    "Friend asks to watch a game tonight → \"Watch game\" → <b>C</b> (nice, no real result). Only after A and B.",
-   "Car wash, someone else can do it → <b>D</b> (give away). Scrolling reels → <b>E</b> (throw away), or ⋯ → Not doing."]],
+   "Car wash, someone else can do it → <b>D</b> (give away). Scrolling reels → <b>E</b> (throw away), or move it to Not doing."]],
  ["Big scary job? Slice it",
-  "Tap ⋯ on the job → <b>Slice it</b> (or AI: slice it for me). Then do only the first slice.",
+  "Tap the job → <b>Slices</b> (or AI: slice it for me). Then do only the first slice.",
   ["\"Build MLOps project\" → slices: create repo · write data step · add training step · add Docker · write README.",
    "\"Clean whole room\" → slices: desk only · clothes only · floor only. One slice a day is fine."]],
  ["After 9 pm: plan tomorrow (10 min)",
-  "The yellow box says <b>Start planning</b>. Follow the 6 steps: clear finished jobs, add tomorrow's jobs, give letters, order the A jobs (top = frog), write what you need ready, sleep.",
+  "The big card says <b>Start planning</b>. Follow the 6 steps: clear finished jobs, add tomorrow's jobs, give letters, order the A jobs (top = frog), write what you need ready, sleep.",
   ["Tomorrow: A-1 \"Apply to 5 jobs\", A-2 \"Practice 2 interview questions\", B \"Reply emails\", C \"Grocery\". Need ready: laptop, job list, coffee.",
    "Lay the laptop and notes on the desk tonight, so tomorrow you just sit and start."]],
  ["Weekend: plan the week",
@@ -520,339 +959,379 @@ const GUIDE=[
  ["Phone and laptop",
   "Sign in with the same email on both (Me tab). Add a job on the phone and it shows on the laptop. Offline is fine; it syncs later.",
   ["On the train: add jobs on the iPhone. At home after 9 pm: plan tomorrow on the Mac with a big keyboard."]],
- ["The 3 rules to remember",
-  "",
+ ["The 3 rules to remember","",
   ["Frog first, every morning. Nothing before it.",
    "Every job gets a letter. Never do a B while an A is waiting.",
    "Plan tomorrow after 9 pm. 21 days in a row and it becomes a habit."]]
 ];
-function openGuide(){
-  layer.innerHTML=`<div class="overlay" data-close="1"><div class="box guide" role="dialog" aria-label="How to use Frog Pond">
-    <h2>How to use Frog Pond every day</h2>
-    ${GUIDE.map(([h,p,ex])=>`<h3>${h}</h3>${p?`<p>${p}</p>`:""}${ex.length?`<div class="ex"><b>Examples</b><ul>${ex.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:""}`).join("")}
-    <button class="btn primary" data-close="1">Got it</button></div></div>`;
-  const bx=layer.querySelector(".box"); if(bx) bx.scrollTop=0;
+function guideSheet(){
+  return {title:"How to use Frog Pond every day",cls:"guide",body:`
+    ${GUIDE.map(([h,p,ex])=>`<div class="stack"><h3>${h}</h3>${p?`<p>${p}</p>`:""}${ex.length?`<div class="ex"><b>Examples</b><ul>${ex.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:""}</div>`).join("")}
+    <button class="btn btn-primary btn-block" data-close="1">Got it</button>`};
+}
+function openGuide(){ openSheet("guide"); }
+
+// ---- sheet: get ready + choose focus length ----
+function prepSheet(t){
+  return {title:t?esc(t.text):"Pick a job and start",eyebrow:"Get ready first · Rule 8",body:`
+    <div class="checks">
+      <label><input type="checkbox" id="p1"> <span>Desk clear. Only this job in front of me.</span></label>
+      <label><input type="checkbox" id="p2"> <span>Everything I need is in reach${t&&t.need?": "+esc(t.need):""}.</span></label>
+      <label><input type="checkbox" id="p3"> <span>Phone off or away. Sit up straight.</span></label>
+    </div>
+    <div class="sec-title">How long? Then say "Let's get to work!"</div>
+    <div class="durations">
+      <button class="rec" data-go="10"><b>10 min</b><small>Swiss cheese: just a bite</small></button>
+      <button data-go="30"><b>30 min</b><small>Small chunk</small></button>
+      <button data-go="60"><b>60 min</b><small>Big chunk</small></button>
+      <button data-go="90"><b>90 min</b><small>Biggest chunk</small></button>
+    </div>
+    <button class="btn btn-ghost" data-close="1">Cancel</button>`};
 }
 
-// ================= RENDER: shared rows =================
+// ================= ROWS =================
+function prioBadge(t){ return `<button class="prio${ui.popId===t.id?" pop":""}" data-l="${t.letter||""}" data-act="letter" data-id="${t.id}" aria-label="Priority ${t.letter?letterLabel(t)+": "+LMEAN[t.letter][0]:"not set"}. Change.">${t.letter?letterLabel(t):"Set"}</button>`; }
 function taskRow(t){
-  const open=ui.open===t.id; const sl=t.slices||[]; const slDone=sl.filter(s=>s.done).length;
-  const late=t.due&&!t.done&&t.due<dkey();
-  const aCount=state.tasks.filter(x=>x.list===t.list&&x.letter==="A"&&!x.done).length;
-  let extra="";
-  if(open){
-    extra=`<div class="menu">
-      ${t.letter==="A"&&!t.done&&aCount>1?`<button class="btn tiny" data-act="up" data-id="${t.id}" ${t.rank===1?"disabled":""}>Move up</button><button class="btn tiny" data-act="down" data-id="${t.id}" ${t.rank===aCount?"disabled":""}>Move down</button>`:""}
-      ${NEXT[t.list]?`<button class="btn tiny" data-act="move" data-to="${NEXT[t.list]}" data-id="${t.id}">To ${LISTS.find(l=>l.id===NEXT[t.list]).name.toLowerCase()} list</button>`:""}
-      ${t.list==="day"?`<button class="btn tiny" data-act="move" data-to="week" data-id="${t.id}">Not today</button>`:""}
-      ${t.list!=="no"?`<button class="btn tiny" data-act="move" data-to="no" data-id="${t.id}">Not doing</button>`:`<button class="btn tiny" data-act="move" data-to="master" data-id="${t.id}">Back to big list</button>`}
-      <button class="btn tiny" data-act="panel" data-p="slice" data-id="${t.id}">Slice it</button>
-      ${true?`<button class="btn tiny sun" data-act="aislice" data-id="${t.id}">AI: slice it for me</button>`:""}
-      <button class="btn tiny" data-act="focus" data-id="${t.id}">Start timer</button>
-      <button class="btn tiny" data-act="panel" data-p="edit" data-id="${t.id}">Deadline & get ready</button>
-      <button class="btn tiny ghost" data-act="del" data-id="${t.id}">Delete</button>
-    </div>`;
-    if(sl.length) extra+=`<ul class="mini panel">${sl.map(s=>`<li class="${s.done?"done":""}"><button class="check ${s.done?"on":""}" aria-label="Slice done: ${esc(s.text)}" data-act="slicedone" data-id="${t.id}" data-s="${s.id}"></button><span>${esc(s.text)}</span><button class="more" aria-label="Remove slice" data-act="slicedel" data-id="${t.id}" data-s="${s.id}">×</button></li>`).join("")}</ul>`;
-    if(ui.panel==="slice") extra+=`<form class="add panel" data-form="slice" data-id="${t.id}"><input id="slice-in" placeholder="One thin slice (5 to 25 minutes)…" autocomplete="off" aria-label="New slice"><button class="btn primary">Add</button></form>`;
-    if(ui.panel==="edit") extra+=`<form class="panel" data-form="edit" data-id="${t.id}">
-      <label class="f">Deadline (Rule 13: give every job one)<input class="in" type="date" id="due-in" value="${esc(t.due)}"></label>
-      <label class="f">Things I need ready before I start (Rule 8)<input class="in" id="need-in" value="${esc(t.need)}" placeholder="Laptop, notes, water…"></label>
-      <button class="btn primary">Save</button></form>`;
-  }
-  return `<li class="t ${t.done?"done":""}">
-    <button class="check ${t.done?"on":""}" aria-label="${t.done?"Undo":"Done"}: ${esc(t.text)}" data-act="done" data-id="${t.id}"></button>
-    <button class="letter" data-l="${t.letter||""}" aria-label="${LETTER_INFO[t.letter||""]} Tap to change." title="${LETTER_INFO[t.letter||""]}" data-act="letter" data-id="${t.id}">${letterLabel(t)}</button>
-    <div class="txt">${t.list==="day"&&t===a1()?'<span class="chip frog">frog</span> ':""}${esc(t.text)}${t.ex?' <span class="chip">example</span>':""}${late?' <span class="chip late">late</span>':""}
-      ${(t.due||sl.length)?`<div class="sub">${t.due?"Due "+esc(t.due):""}${t.due&&sl.length?" · ":""}${sl.length?slDone+" of "+sl.length+" slices done":""}</div>`:""}</div>
-    <button class="more" aria-expanded="${open}" aria-label="More for ${esc(t.text)}" data-act="open" data-id="${t.id}">⋯</button>
-    ${extra}
-  </li>`;
+  const sl=t.slices||[], slDone=sl.filter(s=>s.done).length, late=t.due&&!t.done&&t.due<dkey(), isFrog=t.list==="day"&&t===a1();
+  const meta=[isFrog?`<span class="frogtag">🐸 Frog</span>`:"",t.due?`<span class="${late?"late":""}">${late?"Late · ":"Due "}${esc(t.due)}</span>`:"",sl.length?`<span>${slDone}/${sl.length} slices</span>`:"",t.ex?`<span>Example</span>`:""].filter(Boolean).join("<span aria-hidden=\"true\">·</span>");
+  return `<li class="task${t.done?" done":""}${ui.flash===t.id?" enter":""}" data-id="${t.id}">
+    <div class="swipe-bg" aria-hidden="true"><span class="l">${t.done?"Undo":"Done"}</span><span class="r">More</span></div>
+    <div class="t-in">
+      <button class="check${t.done?" on":""}" aria-label="${t.done?"Mark not done":"Done"}: ${esc(t.text)}" data-act="done" data-id="${t.id}">${CHECK}</button>
+      <button class="t-main" data-act="task" data-id="${t.id}" aria-label="Edit ${esc(t.text)}"><span class="t-title">${esc(t.text)}</span>${meta?`<span class="t-meta">${meta}</span>`:""}</button>
+      ${prioBadge(t)}
+      <button class="more-btn" data-act="task" data-id="${t.id}" aria-label="More actions for ${esc(t.text)}">${I("more")}</button>
+    </div></li>`;
 }
+function addForm(list,ph){ return `<form class="add" data-form="add" data-list="${list}"><label class="sr" for="add-${list}">New job</label><input class="input" id="add-${list}" placeholder="${ph}" autocomplete="off" enterkeyhint="done"><button class="btn btn-primary" aria-label="Add">${I("plus")}<span>Add</span></button></form>`; }
 
 // ================= VIEW: TODAY =================
+function accountLine(){
+  if(typeof fbUser==="undefined") return "";
+  return fbUser?`<button class="acct" data-act="gosync" title="Account">${I("user")}<span>${esc(fbUser.email||"Google account")}</span></button>`
+               :`<button class="acct" data-act="gosync">${I("user")}<span>Not signed in · tap to sign in</span></button>`;
+}
+function heroCard(){
+  const n=nextStep(), today=dkey(), eatenId=state.frogLog[today], eatenTask=typeof eatenId==="string"&&eatenId?byId(eatenId):null, f=a1();
+  const talk=`<button class="talk" data-act="talk" aria-label="Self-talk. Tap for another">${I("chat")}${TALK[ui.talk%TALK.length]}</button>`;
+  if(n.kind==="frog"){
+    const ns=(f.slices||[]).find(s=>!s.done);
+    return `<section class="hero" aria-label="Your frog">
+      <div class="hero-top">${FROG(false)}<div><div class="eyebrow">Your frog · A-1</div><div class="small muted">Do this first. Nothing else.</div></div></div>
+      <div class="hero-title">${esc(f.text)}</div>
+      ${(f.need||ns||f.due)?`<div class="hero-meta">${f.need?`<div class="line">${I("bag")}<span>Need ready: <b>${esc(f.need)}</b></span></div>`:""}${ns?`<div class="line">${I("slice")}<span>Next slice: <b>${esc(ns.text)}</b></span></div>`:""}${f.due?`<div class="line">${I("cal")}<span>Due <b>${esc(f.due)}</b></span></div>`:""}</div>`:""}
+      <button class="btn btn-primary btn-lg btn-block" data-act="focus" data-id="${f.id}">${I("play")}Start focus</button>
+      <div class="hero-actions"><button class="btn btn-secondary" data-act="done" data-id="${f.id}">${I("check")}I ate my frog</button><button class="btn btn-ghost" data-act="task" data-id="${f.id}">${I("more")}More</button></div>
+      <div class="hero-foot">${talk}<span class="xs faint">Don't stare at a frog. Just start.</span></div></section>`;
+  }
+  if(eatenId){
+    const nx=n.kind==="next"?byId(n.id):null;
+    return `<section class="hero done" aria-label="Frog eaten">
+      <div class="hero-top">${FROG(true)}<div><div class="eyebrow" style="color:var(--warn)">Frog eaten today</div><div class="small muted">${eatenTask?esc(eatenTask.text):"The hardest job is done."}</div></div>${eatenTask?`<button class="btn btn-plain btn-sm" style="margin-left:auto" data-act="done" data-id="${eatenTask.id}">Undo</button>`:""}</div>
+      <div class="hero-title">${nx?esc(nx.text):esc(n.what)}</div>
+      ${nx?`<p class="hero-sub">Next job${nx.letter?` · ${letterLabel(nx)}`:""}. The worst part of the day is behind you.</p>`:""}
+      <button class="btn btn-primary btn-lg btn-block" data-act="${n.act}"${n.id?` data-id="${n.id}"`:""}>${n.act==="focus"?I("play"):n.act==="wizard"?I("moon"):I("plus")}${n.btn}</button>
+      <div class="hero-foot">${talk}<span class="xs faint">${streak()}-day streak</span></div></section>`;
+  }
+  if(n.kind==="empty") return `<section class="hero" aria-label="Start here"><div class="empty" style="padding:var(--s-2) 0 0">${FROG(false)}<b>What needs doing today?</b><p>Add your jobs. Then the hardest important one becomes your frog.</p></div>
+      <button class="btn btn-primary btn-lg btn-block" data-act="focusadd">${I("plus")}Add first job</button><div class="hero-foot">${talk}<span class="xs faint">One frog a day.</span></div></section>`;
+  const icon=n.act==="wizard"?"moon":n.act==="letter"?"flag":n.act==="focus"?"play":"plus";
+  return `<section class="hero${n.kind==="plan"?" plan":""}" aria-label="Do this now">
+    <div class="hero-top">${n.kind==="plan"?`<span class="avatar on" style="background:var(--surface-2);color:var(--info)">${I("moon")}</span>`:FROG(false)}<div class="eyebrow">${esc(n.k)}</div></div>
+    <div class="hero-title" style="font-size:clamp(21px,5.4vw,26px)">${esc(n.what)}</div>
+    ${f&&n.kind!=="frog"&&!eatenId?`<div class="hero-meta"><div class="line">${FROG(false,"ic")}<span>Frog: <b>${esc(f.text)}</b></span></div></div>`:""}
+    <button class="btn btn-primary btn-lg btn-block" data-act="${n.act}"${n.id?` data-id="${n.id}"`:""}>${I(icon)}${n.btn}</button>
+    <div class="hero-foot">${talk}<span class="xs faint">${n.kind==="plan"?"10 minutes tonight saves 2 hours tomorrow.":"One step at a time."}</span></div></section>`;
+}
+function nextRow(){
+  const n=nextStep(); if(n.kind!=="frog") return "";
+  const open=sorted("day").filter(t=>!t.done&&t.id!==n.id&&t.letter!=="D"&&t.letter!=="E");
+  const x=open[0]; if(!x) return "";
+  return `<div class="next-row"><span class="prio" data-l="${x.letter||""}" aria-hidden="true">${x.letter?letterLabel(x):"–"}</span><div class="txt"><span class="eyebrow">Next</span><b>${esc(x.text)}</b></div><button class="btn btn-sm btn-secondary" data-act="task" data-id="${x.id}" aria-label="Open ${esc(x.text)}">${I("chev")}</button></div>`;
+}
 function viewToday(){
   const today=dkey(), d=new Date(), hour=d.getHours();
-  const eatenId=state.frogLog[today]; const eatenTask=typeof eatenId==="string"?byId(eatenId):null;
-  const f=a1();
-  const day=sorted("day");
+  const eatenId=state.frogLog[today]; const f=a1();
+  const day=sorted("day"); const doneN=day.filter(t=>t.done).length; const pct=day.length?Math.round(doneN/day.length*100):0;
   const hasEx=state.tasks.some(t=>t.ex)||state.goals.some(g=>g.ex);
-  const h=todayHabits(); const st=streak(); const total=Object.values(state.frogLog).filter(Boolean).length;
+  const h=todayHabits(); const st=streak(); const best=bestStreak(); const total=Object.values(state.frogLog).filter(Boolean).length;
   const n=day.filter(t=>!t.done).length, vital=Math.max(1,Math.ceil(n*0.2));
   const mg=majorGoal(), nb=nextBarrel(mg);
   const dow=d.getDay(), lastDays=new Date(d.getFullYear(),d.getMonth()+1,0).getDate()-d.getDate();
   let banner="";
-  if(lastDays<=2) banner=`<div class="banner"><p>End of the month. Make next month's list from your big list. (Rule 2)</p><button class="btn tiny" data-act="golist" data-to="month">Open month list</button></div>`;
-  else if(dow===0||dow===6) banner=`<div class="banner"><p>Weekend: plan the whole coming week now. And keep one full day with no work. (Rules 2 & 14)</p><button class="btn tiny" data-act="golist" data-to="week">Open week list</button></div>`;
-
-  let frogHtml;
-  if(eatenId){
-    frogHtml=`<div class="frog-card eaten"><svg class="frogsvg" aria-hidden="true"><use href="#frogfull"/></svg><div class="txt">
-      <div class="label">Frog eaten today. Well done!</div>
-      <div class="task">${eatenTask?esc(eatenTask.text):"Today's frog"}</div>
-      <p class="small">The worst job of the day is behind you. ${f?"Next A job: <b>"+esc(f.text)+"</b>":""}</p>
-      <div class="row">${eatenTask?`<button class="btn tiny ghost" data-act="done" data-id="${eatenTask.id}">Undo</button>`:""}${f?`<button class="btn tiny primary" data-act="focus" data-id="${f.id}">Start next A job</button>`:""}</div></div></div>`;
-  } else if(f){
-    const sl=f.slices||[]; const ns=sl.find(s=>!s.done);
-    frogHtml=`<div class="frog-card"><svg class="frogsvg" aria-hidden="true"><use href="#frog"/></svg><div class="txt">
-      <div class="label">Your frog (A-1). Eat it first</div>
-      <div class="task">${esc(f.text)}</div>
-      ${f.need?`<div class="need"><b>Have ready:</b> ${esc(f.need)}</div>`:""}
-      ${ns?`<p class="small">Next slice: <b>${esc(ns.text)}</b></p>`:""}
-      <div class="row"><button class="btn primary" data-act="focus" data-id="${f.id}">Start eating</button><button class="btn sun" data-act="done" data-id="${f.id}">I ate my frog!</button><button class="btn tiny ghost" data-act="open" data-id="${f.id}">Slice / more</button></div>
-      <p class="small muted">Don't sit and look at a frog for long. Just start. (Rule 17)</p>
-    </div></div>
-    ${ui.open===f.id?`<ul class="tasks">${taskRow(f)}</ul>`:""}`;
-  } else {
-    frogHtml=`<div class="frog-card"><svg class="frogsvg" aria-hidden="true"><use href="#frog"/></svg><div class="txt">
-      <div class="label">No frog yet</div>
-      <div class="task">Give your hardest, most important job the letter A</div>
-      <p class="small">Your frog is the job you most want to put off but that matters most. The top A job (A-1) becomes your frog.</p></div></div>`;
-  }
-
+  if(lastDays<=2) banner=`<div class="notice">${I("cal")}<p>End of the month. Make next month's list from your big list.</p><button class="btn btn-sm btn-soft" data-act="golist" data-to="month">Month list</button></div>`;
+  else if(dow===0||dow===6) banner=`<div class="notice">${I("cal")}<p>Weekend: plan the coming week, and keep one full day with no work.</p><button class="btn btn-sm btn-soft" data-act="golist" data-to="week">Week list</button></div>`;
+  const habitsDone=(eatenId?1:0)+HABITS.filter(([k])=>h[k]).length, habitsAll=HABITS.length+1;
   const days21=Math.min(st,21);
-  return `
-  <header class="top"><div class="who"><h1>Frog Pond</h1><p class="small muted">${d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})}</p>${accountLine()}</div>
-    <button class="talk" data-act="talk" aria-label="Say it to yourself, tap for another">${TALK[ui.talk%TALK.length]}</button><button id="sync" class="sync" data-act="gosync" style="border:none"></button></header>
-  ${banner}
-  ${nextCard()}
-  ${frogHtml}
-
-  <section class="card">
-    <div class="section-head"><h2>21-day frog habit</h2><span class="src">Rule 17</span></div>
-    <p class="small muted">Eat your frog first thing every day for 21 days in a row and it becomes a habit.</p>
-    <div class="days21" aria-label="${days21} of 21 days">${Array.from({length:21},(_,i)=>`<i class="${i<days21?"on":""}"></i>`).join("")}</div>
-    <div class="stats"><div class="stat"><div class="n">${st}</div><div class="small muted">days in a row</div></div><div class="stat"><div class="n">${total}</div><div class="small muted">frogs eaten in all</div></div></div>
-  </section>
-
-  <section class="card">
-    <div class="section-head"><h2>Today's list</h2><span class="muted small">${day.filter(t=>t.done).length} of ${day.length} done</span></div>
-    <form class="add" data-form="add" data-list="day"><input id="add-day" placeholder="Add a job for today…" autocomplete="off" aria-label="New job for today"><button class="btn primary">Add</button></form>
-    ${n>=3?`<p class="small"><b>80/20:</b> of your ${n} jobs, about ${vital} ${vital===1?"is":"are"} worth more than all the rest. Those are your A jobs. Don't clear up small things first. <span class="src">Rule 3</span></p>`:""}
-    ${day.length?`<ul class="tasks">${day.map(taskRow).join("")}</ul>`:`<div class="empty">Nothing here yet. Add jobs above, or move some from your week list.</div>`}
-    <div class="legend" aria-label="What the letters mean">
-      <div><b style="background:var(--a)">A</b>Must do</div><div><b style="background:var(--b)">B</b>Should do</div><div><b style="background:var(--c)">C</b>Nice to do</div><div><b style="background:var(--d)">D</b>Give away</div><div><b style="background:var(--e)">E</b>Throw away</div>
-    </div>
-    <p class="small muted">Tap a letter to change it. Several A jobs? Open ⋯ and move them up or down: A-1, A-2, A-3. <span class="src">Rule 5</span></p>
-  </section>
-
-  <section class="card">
-    <div class="section-head"><h2>Daily habits</h2><span class="src">From the book</span></div>
-    <div class="habits">
-      <div class="habit"><span class="check ${eatenId?"on":""}" aria-hidden="true"></span><span><b>Ate my frog first</b> <span class="src">Rule 17</span></span></div>
-      ${HABITS.map(([k,label,src])=>`<div class="habit"><button class="check ${h[k]?"on":""}" aria-label="${esc(label)}" data-act="habit" data-k="${k}"></button><span>${label} <span class="src">${src}</span>${k==="goal"&&nb?`<br><span class="small muted">Next step: ${esc(nb.text)}</span>`:""}</span></div>`).join("")}
-    </div>
-  </section>
-
-  <details class="card" ${hour>=21?"open":""}>
-    <summary>Tonight after 9 pm: plan tomorrow</summary>
-    <div class="row"><button class="btn primary" data-act="wizard">Plan step by step (easy)</button></div>
-    <p class="small muted">Do this at the end of each day. 10 minutes of planning saves about 2 hours tomorrow. <span class="src">Rules 2, 8, 17</span></p>
-    <div class="habits">${PLAN_STEPS.map(([k,label,act],i)=>{const done=(state.plan[today]||{})[k];return `<div class="habit"><button class="check ${done?"on":""}" aria-label="Step ${i+1} done" data-act="planstep" data-k="${k}"></button><span>${i+1}. ${label}${act==="clear"?` <button class="btn tiny" data-act="clearDone">Clear finished jobs</button>`:""}</span></div>`}).join("")}</div>
-    ${f?`<form class="row" data-form="need" data-id="${f.id}"><label class="f" style="flex:1;min-width:200px">What I need ready for my frog<input class="in" id="need-today" value="${esc(f.need)}" placeholder="Laptop, notes, water…"></label><button class="btn">Save</button></form>`:""}
-  </details>
-
-  <details class="card">
-    <summary>Feeling stuck? Ask these</summary>
-    <ul class="qs">
+  const listCard=`<section class="card" aria-labelledby="todaylist-h">
+      <div class="card-head"><h2 id="todaylist-h">Today's list</h2><span class="small muted tnum">${doneN} of ${day.length} done</span></div>
+      ${day.length?`<div class="progress" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Today's progress"><i style="width:${pct}%"></i></div>`:""}
+      ${addForm("day","Add a job for today…")}
+      ${n>=3?`<div class="insight">${I("bulb")}<span><b>80/20:</b> of your ${n} jobs, about ${vital} ${vital===1?"is":"are"} worth more than all the rest. Those are your A jobs. Don't clear up small things first.</span></div>`:""}
+      ${day.length?`<ul class="tasks">${day.map(taskRow).join("")}</ul>`:emptyState("Nothing here yet","Add the jobs you need to finish today, or move some from your week list.",`<button class="btn btn-secondary" data-act="golist" data-to="week">${I("list")}Open week list</button>`)}
+      ${day.length?`<p class="xs faint">Tip: swipe a job right to finish it, left for more. Tap the letter to change priority.</p>`:""}
+    </section>`;
+  const habitsCard=`<details class="disc"${habitsDone<habitsAll&&hour>=17?" open":""}><summary>${I("heart")}<span>Daily basics</span><span class="habit-dots" aria-hidden="true">${Array.from({length:habitsAll},(_,i)=>`<i class="${i<habitsDone?"on":""}"></i>`).join("")}</span><span class="xs muted tnum">${habitsDone}/${habitsAll}</span>${I("chev","chev")}</summary><div class="disc-body"><div class="hlist">
+      <div class="hrow"><span class="check${eatenId?" on":""}" aria-hidden="true">${CHECK}</span><span class="txt">Ate my frog first<small>Rule 17 · ticks itself</small></span></div>
+      ${HABITS.map(([k,label,src])=>`<div class="hrow"><button class="check${h[k]?" on":""}" aria-label="${esc(label)}" aria-pressed="${!!h[k]}" data-act="habit" data-k="${k}">${CHECK}</button><span class="txt">${label}<small>${src}${k==="goal"&&nb?` · next: ${esc(nb.text)}`:""}</small></span></div>`).join("")}
+    </div></div></details>`;
+  const streakCard=`<section class="card" aria-labelledby="streak-h">
+      <div class="card-head"><h2 id="streak-h">21-day frog habit</h2><span class="chip sm ${eatenId?"accent":""}">${eatenId?"Today ✓":"Today: not yet"}</span></div>
+      <div class="days21" role="img" aria-label="${days21} of 21 days">${Array.from({length:21},(_,i)=>`<i class="${i<days21?"on":""}${!eatenId&&i===days21?" today":""}">${i+1}</i>`).join("")}</div>
+      <div class="stats"><div class="stat"><div class="n">${st}</div><div class="l">streak</div></div><div class="stat"><div class="n">${best}</div><div class="l">best</div></div><div class="stat"><div class="n">${total}</div><div class="l">frogs eaten</div></div></div>
+      <p class="xs faint">Eat your frog first thing for 21 days in a row and it becomes a habit. (Rule 17)</p>
+    </section>`;
+  const planCard=disc("moon","Tonight after 9 pm: plan tomorrow",`
+      <button class="btn btn-primary" data-act="wizard">${I("moon")}Plan step by step</button>
+      <p class="small muted">10 minutes of planning saves about 2 hours tomorrow. (Rules 2, 8, 17)</p>
+      <div class="hlist">${PLAN_STEPS.map(([k,label,act],i)=>{const done=(state.plan[today]||{})[k];return `<div class="hrow"><button class="check${done?" on":""}" aria-label="Step ${i+1} done" aria-pressed="${!!done}" data-act="planstep" data-k="${k}">${CHECK}</button><span class="txt">${i+1}. ${label}</span>${act==="clear"?`<button class="btn btn-sm btn-secondary" data-act="clearDone">Clear</button>`:""}</div>`}).join("")}</div>
+      ${f?`<form class="stack" data-form="need" data-id="${f.id}"><label class="field">What I need ready for my frog<input id="need-today" value="${esc(f.need)}" placeholder="Laptop, notes, water…"></label><button class="btn btn-secondary">Save</button></form>`:""}`,hour>=21);
+  const stuckCard=disc("bulb","Feeling stuck? Ask these",`<ul class="qs">
       <li>What are my highest-value jobs? <span class="src">Rule 7</span></li>
       <li>What can I, and only I, do that will make a real difference?</li>
       <li>What is the most valuable use of my time right now?</li>
       <li>If I had to leave town for a month tomorrow, what must I finish today? <span class="src">Rule 13</span></li>
       <li>Is this job in my top 20%, or the bottom 80%? <span class="src">Rule 3</span></li>
-      <li>What happens if I do this, and what happens if I don't? <span class="src">Rule 4</span></li>
-    </ul>
-    <div class="row"><button class="btn sun" data-act="focus" data-id="${f?f.id:""}">Do it now: start a timer</button></div>
-  </details>
-  ${help("How to use Today",["Look at the yellow <b>Do this now</b> box. It always shows your next step.","Morning: tap <b>Start eating</b> and do your frog first. Then tap <b>I ate my frog!</b>","New job? Type it in Today's list, then tap the letter box to choose A, B, C, D or E.","Tap the circle when a job is done. Tap ⋯ for more: slice it, deadline, move it, delete.","After 9 pm: the yellow box shows <b>Start planning</b>. Follow the 6 steps.","Want real-life examples? <button class=\"btn tiny\" data-act=\"guide\">Open the daily guide</button>"])}
-  ${hasEx?`<div class="row"><button class="btn ghost tiny" data-act="clearex">Remove the example jobs and goals</button><span class="small muted">Items marked "example" only show how it works.</span></div>`:""}
-  `;
+      <li>What happens if I do this, and what happens if I don't? <span class="src">Rule 4</span></li></ul>
+      <button class="btn btn-soft" data-act="focus" data-id="${f?f.id:""}">${I("bolt")}Do it now: start a timer</button>`);
+  const legendCard=disc("flag","What the letters mean",`<div class="lpick">${["A","B","C","D","E"].map(l=>`<div class="row" style="flex-wrap:nowrap"><span class="prio" data-l="${l}">${l}</span><span class="small"><b>${LMEAN[l][0]}.</b> <span class="muted">${LMEAN[l][1]}</span></span></div>`).join("")}</div><p class="small muted">Several A jobs? Order them A-1, A-2, A-3. A-1 is your frog. (Rule 5)</p>`);
+  const helpCard=help("How to use Today",["The big card at the top always shows your next step. Tap its button.","Morning: <b>Start focus</b> on your frog. Then tap <b>I ate my frog</b>.","New job? Type it in Today's list, then tap <b>Set</b> to choose A, B, C, D or E.","Tap the circle (or swipe right) when a job is done. Tap a job (or swipe left) for slices, timer, deadline, move or delete.","After 9 pm the big card shows <b>Start planning</b>. Follow the 6 steps.",`Real-life examples: <button class="btn btn-sm btn-soft" data-act="guide">Open the daily guide</button>`]);
+  return `
+  <header class="today-head"><div class="who">
+      <span class="eyebrow">${d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})}</span>
+      <h1>${greeting()}</h1>
+      ${accountLine()}
+      <div class="meta-row"><span class="chip ${st?"warn":""}">${I("flame")}${st?`${st}-day streak`:"Start your streak"}</span><button id="sync" class="sync" data-act="gosync"></button></div>
+    </div>
+    <button class="avatar${typeof fbUser!=="undefined"&&fbUser?" on":""}" data-act="gosync" aria-label="Account and sync">${typeof fbUser!=="undefined"&&fbUser&&fbUser.email?esc(fbUser.email[0].toUpperCase()):I("user")}</button>
+  </header>
+  ${banner}
+  <div class="today-grid">
+    <div class="col">${heroCard()}${nextRow()}${listCard}</div>
+    <div class="col aside">${habitsCard}${streakCard}${planCard}${stuckCard}${legendCard}${helpCard}
+      ${hasEx?`<div class="notice">${I("help")}<p>Items marked “Example” only show how it works.</p><button class="btn btn-sm btn-secondary" data-act="clearex">Remove</button></div>`:""}
+    </div>
+  </div>`;
 }
 
 // ================= VIEW: LISTS =================
 function viewLists(){
   const L=LISTS.find(l=>l.id===ui.list)||LISTS[3]; const items=sorted(L.id);
+  const flow=["master","month","week","day"];
+  const emptyTxt={master:["Your big list is empty","Empty your head here: every idea, any time. Sort it later."],month:["No jobs for this month","At month end, pull jobs from the big list."],week:["Nothing planned this week","Plan the whole week before it starts. Pull jobs from the month."],day:["Nothing for today yet","Add today's jobs, or move some from the week list."],no:["Nothing on Not doing","Saying no is a skill. Put jobs here that you decided not to do."]}[L.id];
   return `
-  <h1>Your lists</h1>
-  ${help("How to use Lists",["<b>Big list</b>: any idea, any time. Empty your head here.","Weekend: move jobs from the Big list or Month to <b>Week</b> (tap ⋯ → To week list).","Each evening: move jobs from Week to <b>Today</b>.","Decided not to do something? ⋯ → <b>Not doing</b>. Saying no is a skill."])}
-  <div class="flow"><b>Big list</b> → <b>Month</b> → <b>Week</b> → <b>Today</b> <span>Always work from a list. When something new comes up, add it before you do it. <span class="src">Rule 2</span></span></div>
-  <div class="seg" role="tablist">${LISTS.map(l=>`<button role="tab" aria-selected="${l.id===L.id}" data-act="list" data-to="${l.id}">${l.name} <span class="muted">${state.tasks.filter(t=>t.list===l.id&&!t.done).length}</span></button>`).join("")}</div>
+  <header class="page-head"><h1>Lists</h1><p>Big ideas flow down, step by step, to today.</p></header>
+  <div class="seg" role="tablist" aria-label="Lists">${LISTS.map(l=>`<button role="tab" aria-selected="${l.id===L.id}" data-act="list" data-to="${l.id}">${l.name}<span class="cnt">${state.tasks.filter(t=>t.list===l.id&&!t.done).length}</span></button>`).join("")}</div>
+  <div class="horizon" aria-label="Planning flow">${flow.map((id,i)=>`<b class="${id===L.id?"cur":""}">${LISTS.find(l=>l.id===id).name}</b>${i<flow.length-1?I("chev"):""}`).join("")}<span>· Always work from a list (Rule 2)</span></div>
   <section class="card">
-    <p class="muted">${L.hint}</p>
-    ${L.id==="no"?`<p class="small"><b>Ask about anything you do:</b> "If I were not doing this already, would I start it again today?" If the answer is no, put it here. <span class="src">Rule 16</span></p>`:""}
-    <form class="add" data-form="add" data-list="${L.id}"><input id="add-${L.id}" placeholder="${L.id==="no"?"Something I will stop or put off…":"Add to "+L.name.toLowerCase()+" list…"}" autocomplete="off" aria-label="New item"><button class="btn primary">Add</button></form>
-    ${items.length?`<ul class="tasks">${items.map(taskRow).join("")}</ul>`:`<div class="empty">This list is empty. Add your first item above.</div>`}
-  </section>`;
+    <p class="small muted">${L.hint}</p>
+    ${L.id==="no"?`<div class="insight">${I("bulb")}<span>Ask about anything you do: "If I were not doing this already, would I start it again today?" If no, put it here. (Rule 16)</span></div>`:""}
+    ${addForm(L.id,L.id==="no"?"Something I will stop or put off…":"Add to "+L.name.toLowerCase()+"…")}
+    ${items.length?`<ul class="tasks">${items.map(taskRow).join("")}</ul>`:emptyState(emptyTxt[0],emptyTxt[1],"")}
+  </section>
+  ${help("How to use Lists",["<b>Big list</b>: any idea, any time. Empty your head here.","Weekend: move jobs from the Big list or Month to <b>Week</b> (tap a job → Move to).","Each evening: move jobs from Week to <b>Today</b>.","Decided not to do something? Tap it → Move to <b>Not doing</b>. Saying no is a skill."])}`;
 }
 
 // ================= VIEW: GOALS =================
-function goalCard(g){
+function goalDetail(g){
+  const done=g.steps.filter(s=>s.done).length, nb=nextBarrel(g);
+  return `
+    ${g.steps.length?`<ul class="steplist">${g.steps.map((s,i)=>`<li class="${s.done?"done":""}${s===nb?" next":""}"><button class="check${s.done?" on":""}" aria-label="Step done: ${esc(s.text)}" data-act="stepdone" data-id="${g.id}" data-s="${s.id}">${CHECK}</button><span class="txt">${esc(s.text)}</span>
+      ${!s.done&&s!==nb?`<button class="btn btn-sm btn-plain" data-act="steptoday" data-id="${g.id}" data-s="${s.id}">To today</button>`:""}
+      <button class="icon-btn" aria-label="Move step up" data-act="stepup" data-id="${g.id}" data-s="${s.id}" ${i===0?"disabled":""}>${I("up")}</button></li>`).join("")}</ul>`:`<p class="small muted">No steps yet. Step 4: list everything you must do to reach it.</p>`}
+    <form class="add" data-form="step" data-id="${g.id}"><label class="sr" for="step-${g.id}">New step</label><input class="input" id="step-${g.id}" placeholder="Add a step…" autocomplete="off"><button class="btn btn-secondary" aria-label="Add step">${I("plus")}</button></form>
+    <button class="btn btn-soft" data-act="aisteps" data-id="${g.id}">${I("spark")}AI: list the steps for me</button>
+    <form class="stack" data-form="goalmeta" data-id="${g.id}">
+      <div class="two"><label class="field">Finish date (Step 3)<input type="date" id="gd-${g.id}" value="${esc(g.deadline)}"></label>
+      <label class="field">What is holding me back? (Rule 11)<input id="gb-${g.id}" value="${esc(g.blocker)}" placeholder="The one thing that sets my speed…"></label></div>
+      <button class="btn btn-secondary">Save</button></form>`;
+}
+function majorCard(g){
   const done=g.steps.filter(s=>s.done).length, pct=g.steps.length?Math.round(done/g.steps.length*100):0;
-  const days=g.deadline?Math.ceil((new Date(g.deadline+"T23:59")-new Date())/864e5):null;
-  const nb=nextBarrel(g); const open=g.major||ui.open===g.id;
-  return `<div class="goal ${g.major?"major":""}">
-    <div class="goal-head"><button class="star ${g.major?"on":""}" aria-label="${g.major?"This is my major goal":"Make this my major goal"}" title="Major goal" data-act="major" data-id="${g.id}">★</button>
-      <div class="gt">${esc(g.text)}${g.ex?' <span class="chip">example</span>':""}</div>
-      ${g.major?"":`<button class="more" aria-expanded="${open}" aria-label="Open goal" data-act="open" data-id="${g.id}">⋯</button>`}
-      <button class="more" aria-label="Delete goal" data-act="delgoal" data-id="${g.id}">×</button></div>
-    ${open?`
-    ${g.major?`<p class="small"><b>Major goal.</b> Every morning do the most important task for this goal. <span class="src">Rule 1</span></p>`:""}
-    <div class="row small muted">${g.deadline?`<span>Finish by ${esc(g.deadline)} · ${days>=0?days+" days left":"date passed"}</span>`:`<span>No finish date yet</span>`}<span>${done} of ${g.steps.length} steps</span></div>
-    <div class="bar" role="img" aria-label="${pct}% done"><i style="width:${pct}%"></i></div>
-    <ul class="mini">${g.steps.map((s,i)=>`<li class="${s.done?"done":""} ${s===nb?"next":""}"><button class="check ${s.done?"on":""}" aria-label="Step done: ${esc(s.text)}" data-act="stepdone" data-id="${g.id}" data-s="${s.id}"></button><span>${esc(s.text)} ${s===nb?'<span class="barrel">next oil barrel</span>':""}</span>
-      ${!s.done?`<button class="btn tiny ghost" data-act="steptoday" data-id="${g.id}" data-s="${s.id}">To today</button>`:""}
-      <button class="more" aria-label="Move step up" data-act="stepup" data-id="${g.id}" data-s="${s.id}" ${i===0?"disabled":""}>↑</button></li>`).join("")}</ul>
-    <form class="add" data-form="step" data-id="${g.id}"><input id="step-${g.id}" placeholder="Add a step (Step 4: list everything to do)…" autocomplete="off" aria-label="New step"><button class="btn">Add</button></form>
-    ${true?`<div class="row"><button class="btn tiny sun" data-act="aisteps" data-id="${g.id}">AI: list the steps for me</button></div>`:""}
-    <form class="row" data-form="goalmeta" data-id="${g.id}">
-      <label class="f" style="flex:1;min-width:150px">Finish date (Step 3)<input class="in" type="date" id="gd-${g.id}" value="${esc(g.deadline)}"></label>
-      <label class="f" style="flex:2;min-width:200px">What is holding me back? (Rule 11)<input class="in" id="gb-${g.id}" value="${esc(g.blocker)}" placeholder="The one thing that sets my speed…"></label>
-      <button class="btn" style="align-self:flex-end">Save</button></form>
-    `:""}
-  </div>`;
+  const days=g.deadline?Math.ceil((new Date(g.deadline+"T23:59")-new Date())/864e5):null; const nb=nextBarrel(g);
+  return `<section class="goal-hero" aria-label="Major goal">
+    <div class="spread"><span class="eyebrow">${I("star")}Major goal</span><button class="icon-btn" aria-label="Delete goal" data-act="delgoal" data-id="${g.id}">${I("trash")}</button></div>
+    <div class="goal-title">${esc(g.text)}${g.ex?` <span class="chip sm">Example</span>`:""}</div>
+    <div class="spread small muted"><span>${g.deadline?`Target ${esc(g.deadline)} · ${days>=0?days+" days left":"date passed"}`:"No finish date yet"}</span><span class="tnum">${done}/${g.steps.length} · ${pct}%</span></div>
+    <div class="progress" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Goal progress"><i style="width:${pct}%"></i></div>
+    ${nb?`<div class="nextstep"><span class="eyebrow">Next step · next oil barrel</span><b>${esc(nb.text)}</b><button class="btn btn-primary" data-act="steptoday" data-id="${g.id}" data-s="${nb.id}">${I("arrow")}Move to Today</button></div>`:""}
+    ${g.blocker?`<div class="insight">${I("lock")}<span>Holding me back: <b>${esc(g.blocker)}</b></span></div>`:""}
+    <p class="xs faint">Every morning do the most important task for this goal. (Rule 1)</p>
+    ${disc("list","Steps, deadline and blocker"+`<span hidden>${g.id}</span>`,goalDetail(g),!g.steps.length)}
+  </section>`;
 }
 function viewGoals(){
-  const goals=[...state.goals].sort((a,b)=>(b.major?1:0)-(a.major?1:0));
+  const mg=majorGoal(); const others=state.goals.filter(g=>g!==mg);
   return `
-  <h1>Goals</h1>
-  ${help("How to use Goals",["Write up to 10 goals as if they are already true: \"I earn…\", \"I work as…\".","Tap ★ on the ONE goal that would change your life the most.","Add its steps in order. The next step shows <b>next oil barrel</b>.","Tap <b>To today</b> on a step to make it a job for today. Do one step every day."])}
-  <section class="card">
-    <div class="section-head"><h2>My 10 goals for next year</h2><span class="src">Rule 1</span></div>
-    <p class="small muted">Write each goal as if a year has passed and it is already true: "I earn…", "I weigh…", "I drive…". Then tap ★ on the ONE goal that would change your life the most.</p>
-    <form class="add" data-form="goal"><input id="g-text" placeholder="${state.goals.length>=10?"You have 10 goals. Finish or remove one first.":"I …"}" autocomplete="off" aria-label="New goal" ${state.goals.length>=10?"disabled":""}><button class="btn primary" ${state.goals.length>=10?"disabled":""}>Add</button></form>
-    <p class="small muted">${state.goals.length} of 10 goals written</p>
-    ${goals.length?goals.map(goalCard).join(""):`<div class="empty">No goals yet. Only about 3 in 100 people write their goals down. Be one of them.</div>`}
+  <header class="page-head"><h1>Goals</h1><p>Write them as if they're already true. Star the one that matters most.</p></header>
+  ${mg?majorCard(mg):""}
+  <section class="card" aria-labelledby="goals-h">
+    <div class="card-head"><h2 id="goals-h">My 10 goals for next year</h2><span class="small muted tnum">${state.goals.length} of 10</span></div>
+    <form class="add" data-form="goal"><label class="sr" for="g-text">New goal</label><input class="input" id="g-text" placeholder="${state.goals.length>=10?"You have 10 goals. Finish or remove one first.":"I …"}" autocomplete="off" ${state.goals.length>=10?"disabled":""}><button class="btn btn-primary" ${state.goals.length>=10?"disabled":""}>${I("plus")}<span>Add</span></button></form>
+    ${!state.goals.length?emptyState("No goals yet","Only about 3 in 100 people write their goals down. Write yours as if a year has passed: “I earn…”, “I work as…”.",""):""}
+    ${others.length?`<div>${others.map(g=>{const open=ui.open===g.id; return `<div class="goal-row"><button class="star" aria-label="Make this my major goal" data-act="major" data-id="${g.id}">${I("star")}</button><span class="txt">${esc(g.text)}${g.ex?` <span class="chip sm">Example</span>`:""}<br><span class="xs faint">${g.steps.filter(s=>s.done).length}/${g.steps.length} steps${g.deadline?" · "+esc(g.deadline):""}</span></span>
+        <button class="icon-btn" aria-expanded="${open}" aria-label="${open?"Close":"Open"} goal" data-act="open" data-id="${g.id}">${I(open?"x":"chev")}</button><button class="icon-btn" aria-label="Delete goal" data-act="delgoal" data-id="${g.id}">${I("trash")}</button></div>${open?`<div class="goal-open">${goalDetail(g)}</div>`:""}`;}).join("")}</div>`:""}
+    ${state.goals.length&&!mg?`<p class="small muted">Tap ★ on the ONE goal that would change your life the most.</p>`:""}
   </section>
-  <details class="card">
-    <summary>The 7 steps to any goal</summary>
-    <ol class="steps"><li>Decide exactly what you want.</li><li>Write it down.</li><li>Set a finish date.</li><li>List everything you must do.</li><li>Put the list in order: what first, what next.</li><li>Do something on it right away.</li><li>Do something for it every single day.</li></ol>
-  </details>`;
+  ${disc("target","The 7 steps to any goal",`<ol class="steps"><li>Decide exactly what you want.</li><li>Write it down.</li><li>Set a finish date.</li><li>List everything you must do.</li><li>Put the list in order: what first, what next.</li><li>Do something on it right away.</li><li>Do something for it every single day.</li></ol>`)}
+  ${help("How to use Goals",["Write up to 10 goals as if they are already true: \"I earn…\", \"I work as…\".","Tap ★ on the ONE goal that would change your life the most.","Add its steps in order. The next one shows as <b>next oil barrel</b>.","Tap <b>Move to Today</b> to make it a job for today. Do one step every day."])}`;
 }
 
 // ================= VIEW: ME =================
 function viewMe(){
   const low=[...state.kra].sort((a,b)=>a.score-b.score)[0];
   const ans=state.answers||{};
-  const qa=(group)=>QUESTIONS[group].map(([k,q])=>`<label class="f">${q}<textarea class="in" id="q-${group}-${k}" data-ans="${group}.${k}" rows="2">${esc(ans[group+"."+k]||"")}</textarea></label>`).join("");
+  const qa=(group)=>QUESTIONS[group].map(([k,q])=>`<label class="field">${q}<textarea id="q-${group}-${k}" data-ans="${group}.${k}" rows="2">${esc(ans[group+"."+k]||"")}</textarea></label>`).join("");
   return `
-  <h1>Me</h1>
-  ${help("How to use Me",["<b>Sync</b>: sign in with the same email on your phone and laptop.","<b>Key result areas</b>: the 5 to 7 things your job needs. Score each 1 to 10 once a month; work on the lowest.","Answer the energy and talent questions once. Read them again when you feel stuck.","<b>Settings</b>: free AI key, backup file, replay the welcome tour."])}
+  <header class="page-head"><h1>Me</h1><p>Your account, strengths, energy and settings.</p></header>
+  <div class="group-title">Sync &amp; account</div>
   ${accountCard()}
-  <section class="card">
-    <div class="section-head"><h2>Key result areas</h2><span class="src">Rule 6</span></div>
-    <p class="small muted">Most jobs have 5 to 7 results you must get. Score yourself 1 to 10 on each. Your weakest area sets how high you can go, so work on it first.</p>
-    <div class="kra">${state.kra.map(k=>{const isLow=low&&k.id===low.id&&state.kra.length>1;return `<div class="kra-row ${isLow?"low":""}">
-      <span style="min-width:0;overflow-wrap:anywhere"><b>${esc(k.name)}</b>${isLow?' <span class="chip">work on this</span>':""}</span>
+  <div class="group-title">Key result areas · Rule 6</div>
+  <section class="group"><div class="pad">
+    <p class="small muted">Most jobs have 5 to 7 results you must get. Score yourself 1 to 10. Your weakest area sets how high you can go, so work on it first.</p>
+    ${state.kra.length?`<div>${state.kra.map(k=>{const isLow=low&&k.id===low.id&&state.kra.length>1;return `<div class="kra-row${isLow?" low":""}">
+      <span style="min-width:0;overflow-wrap:anywhere"><b>${esc(k.name)}</b>${isLow?`<br><span class="chip sm warn">Work on this</span>`:""}</span>
       <input type="range" min="1" max="10" value="${k.score}" id="kra-${k.id}" aria-label="Score for ${esc(k.name)}" data-kra="${k.id}">
-      <span class="score">${k.score}</span><button class="more" aria-label="Remove ${esc(k.name)}" data-act="kradel" data-id="${k.id}">×</button></div>`}).join("")}</div>
-    <form class="add" data-form="kra"><input id="kra-new" placeholder="Add an area (like Planning, Coding, Health)" autocomplete="off" aria-label="New key result area" ${state.kra.length>=7?"disabled":""}><button class="btn" ${state.kra.length>=7?"disabled":""}>Add</button></form>
-    <label class="f">The ONE skill that, if I were excellent at it, would help my career most:<input class="in" id="oneskill" data-field="oneSkill" value="${esc(state.oneSkill)}" placeholder="Ask your boss, friends and family too"></label>
-  </section>
-  <section class="card">
-    <div class="section-head"><h2>My energy</h2><span class="src">Rule 14</span></div>
-    <div class="row">
-      <label class="f" style="flex:1;min-width:150px">I do my best work in the<select class="in" id="besttime" data-field="bestTime">${["morning","afternoon","evening"].map(x=>`<option ${state.bestTime===x?"selected":""}>${x}</option>`).join("")}</select></label>
-      <label class="f" style="flex:1;min-width:150px">My full day off each week<select class="in" id="dayoff" data-field="dayOff">${["Saturday","Sunday"].map(x=>`<option ${state.dayOff===x?"selected":""}>${x}</option>`).join("")}</select></label>
+      <span class="score">${k.score}</span><button class="icon-btn" aria-label="Remove ${esc(k.name)}" data-act="kradel" data-id="${k.id}">${I("x")}</button></div>`}).join("")}</div>`:emptyState("No areas yet","Add the 5 to 7 things your work needs, like Planning, Coding or Health.","")}
+    <form class="add" data-form="kra"><label class="sr" for="kra-new">New area</label><input class="input" id="kra-new" placeholder="Add an area (Planning, Coding, Health)" autocomplete="off" ${state.kra.length>=7?"disabled":""}><button class="btn btn-secondary" ${state.kra.length>=7?"disabled":""} aria-label="Add area">${I("plus")}</button></form>
+    <label class="field">The ONE skill that would help my career most<input id="oneskill" data-field="oneSkill" value="${esc(state.oneSkill)}" placeholder="Ask your boss, friends and family too"></label>
+  </div></section>
+  <div class="group-title">Energy · Rule 14</div>
+  <section class="group"><div class="pad">
+    <div class="two">
+      <label class="field">I do my best work in the<select id="besttime" data-field="bestTime">${["morning","afternoon","evening"].map(x=>`<option ${state.bestTime===x?"selected":""}>${x}</option>`).join("")}</select></label>
+      <label class="field">My full day off each week<select id="dayoff" data-field="dayOff">${["Saturday","Sunday"].map(x=>`<option ${state.dayOff===x?"selected":""}>${x}</option>`).join("")}</select></label>
     </div>
     <p class="small muted">Do your frog in your best ${esc(state.bestTime)} hours. Bed by 10 pm on weeknights. No work on ${esc(state.dayOff)}.</p>
-    ${qa("energy")}
+  </div></section>
+  ${disc("bolt","Energy questions",qa("energy"))}
+  ${disc("star","My special talents · Rule 10",qa("talents"))}
+  <div class="group-title">Settings</div>
+  <section class="group" id="settings">
+    <div class="pad"><div class="spread"><b>${I("spark")} Free AI helper</b><span class="chip sm ${ai?"accent":""}">${ai?"On":"Off"}</span></div>
+      <p class="small muted">Optional. Slices big jobs and lists goal steps. Get a free key at aistudio.google.com → “Get API key”. The key stays only on this device.</p>
+      <label class="field">Gemini API key<input type="password" id="gkey" value="${esc(cfg.key)}" autocomplete="off" spellcheck="false" placeholder="Paste your key"></label>
+      <label class="field">Model (leave as is)<input id="gmodel" value="${esc(cfg.model)}" spellcheck="false"></label>
+      <div class="row"><button class="btn btn-primary" data-act="savekey">Save key</button><button class="btn btn-secondary" data-act="testkey">Test it</button>${cfg.key?`<button class="btn btn-ghost" data-act="delkey">Remove key</button>`:""}</div></div>
+    <div class="pad"><b>${I("user")} Account</b>
+      ${typeof fbUser!=="undefined"&&fbUser?`<p class="small">Signed in as <b>${esc(fbUser.email||"Google account")}</b>${fbUser.providerData&&fbUser.providerData[0]&&fbUser.providerData[0].providerId==="google.com"?" (Google)":" (email + password)"}</p>
+        <div class="row"><button class="btn btn-ghost btn-sm" data-act="signout">${I("out")}Sign out</button><button class="btn btn-secondary btn-sm" data-act="gosync">Sync settings</button></div>`
+        :`<p class="small muted">Not signed in. Your plan is saved on this device only.</p><div class="row"><button class="btn btn-secondary btn-sm" data-act="gosync">Sign in to sync</button></div>`}</div>
+    <button class="cell" data-act="guide">${I("book")}<span class="txt">Daily guide with examples<small>How to use Frog Pond in real life</small></span>${I("chev","chev")}</button>
+    <button class="cell" data-act="tour">${I("help")}<span class="txt">Show the welcome tour again</span>${I("chev","chev")}</button>
+    <button class="cell" data-act="export">${I("download")}<span class="txt">Save backup file<small>${cfg.lastBackup?"Last backup: "+esc(cfg.lastBackup):"No backup yet. Save one every week."}</small></span>${I("chev","chev")}</button>
+    <label class="cell" for="importf" style="cursor:pointer">${I("upload")}<span class="txt">Load backup file<small>Merges a backup into your plan</small></span>${I("chev","chev")}</label><input type="file" id="importf" accept="application/json,.json" hidden>
   </section>
-  <section class="card">
-    <div class="section-head"><h2>My special talents</h2><span class="src">Rule 10</span></div>
-    ${qa("talents")}
-  </section>
-  <section class="card" id="settings">
-    <div class="section-head"><h2>Settings</h2></div>
-    <h3>Free AI helper (Google Gemini)</h3>
-    <p class="small muted">Optional. It slices big jobs and lists goal steps for you. Get a free key: open aistudio.google.com, sign in with Google, tap "Get API key", copy it and paste it here. The key stays only on this device.</p>
-    <label class="f">Gemini API key<input class="in" type="password" id="gkey" value="${esc(cfg.key)}" autocomplete="off" spellcheck="false" placeholder="Paste your key"></label>
-    <label class="f">Model (leave as is)<input class="in" id="gmodel" value="${esc(cfg.model)}" spellcheck="false"></label>
-    <div class="row"><button class="btn primary" data-act="savekey">Save key</button><button class="btn" data-act="testkey">Test it</button>${cfg.key?'<button class="btn ghost tiny" data-act="delkey">Remove key</button>':""}<span class="small muted">${ai?"AI is on":"AI is off"}</span></div>
-    <h3>Account</h3>
-    ${typeof fbUser!=="undefined"&&fbUser?`<p class="small">👤 Signed in as <b>${esc(fbUser.email||"Google account")}</b>${fbUser.providerData&&fbUser.providerData[0]&&fbUser.providerData[0].providerId==="google.com"?" (Google)":" (email + password)"}</p>
-      <div class="row"><button class="btn ghost tiny" data-act="signout">Sign out</button><button class="btn ghost tiny" data-act="gosync">Sync settings</button></div>`
-      :`<p class="small muted">Not signed in. Your plan is saved on this device only.</p><div class="row"><button class="btn tiny" data-act="gosync">Sign in to sync</button></div>`}
-    <h3>Help</h3>
-    <div class="row"><button class="btn primary" data-act="guide">📖 Daily guide with examples</button><button class="btn" data-act="tour">Show the welcome tour again</button></div>
-    <h3>Use it on phone and laptop</h3>
-    <p class="small muted">Your plan saves on this device only, so it is free and private. To move it: tap "Save backup file", send the file to your other device (AirDrop, email or iCloud Drive), open the app there and tap "Load backup file".</p>
-    <div class="row"><button class="btn" data-act="export">Save backup file</button><label class="btn" for="importf" style="display:inline-flex;align-items:center;cursor:pointer">Load backup file</label><input type="file" id="importf" accept="application/json,.json" hidden></div>
-    <p class="small muted">${cfg.lastBackup?"Last backup: "+esc(cfg.lastBackup):"No backup yet. Save one every week."}</p>
-  </section>`;
+  ${help("How to use Me",["<b>Sync</b>: sign in with the same email on your phone and laptop.","<b>Key result areas</b>: the 5 to 7 things your job needs. Score each 1 to 10 once a month; work on the lowest.","Answer the energy and talent questions once. Read them again when you feel stuck.","<b>Settings</b>: free AI key, backup file, daily guide, welcome tour."])}`;
 }
 
 // ================= VIEW: RULES =================
 function viewRules(){
   const doy=Math.floor((Date.now()-new Date(new Date().getFullYear(),0,0))/864e5); const i=doy%21; const r=RULES[i];
   return `
-  ${help("How to use 21 Rules",["Every morning read the yellow <b>Rule of the day</b> (30 seconds) and do its <b>Do it now</b> part.","Each card below is one chapter of the book in simple words.","Tap <b>Use it in the app</b> to jump to the place where you use that rule.","In 21 days you will have gone through the whole book once."])}
-  <div class="rule-today"><span class="k">Rule of the day · ${i+1} of 21</span><h2>${r[0]}</h2><p>${r[1]}</p><p><b>Do it now:</b> ${r[2]}</p></div>
-  <h2>All 21 ways to stop putting things off</h2>
-  <div class="rules">${RULES.map((x,n)=>`<div class="rule"><span class="num">Rule ${n+1}</span><h3>${x[0]}</h3><p>${x[1]}</p><p class="do"><b>Do it now:</b> ${x[2]}</p><button class="btn tiny ghost" data-act="gotab" data-to="${x[3]}">Use it in the app</button></div>`).join("")}</div>
-  <p class="small muted">Retold in simple words from Eat That Frog! by Brian Tracy. Read these again and again until they are habits.</p>`;
+  <header class="page-head"><h1>21 Rules</h1><p>The whole book in simple words. One rule a day.</p></header>
+  <section class="rule-hero"><span class="eyebrow">Rule of the day · ${i+1} of 21</span><h2>${r[0]}</h2><p class="muted">${r[1]}</p><div class="do-now"><b>Do it now:</b> ${r[2]}</div><button class="btn btn-secondary" data-act="gotab" data-to="${r[3]}">${I("arrow")}Use it in the app</button></section>
+  <div class="rule-list">${RULES.map((x,n)=>`<details data-k="r-${n}"${discOpen("r-"+n,false)?" open":""}><summary><span class="num">${n+1}</span><span>${x[0]}</span>${I("chev","chev")}</summary><div class="body"><p>${x[1]}</p><div class="do-now"><b>Do it now:</b> ${x[2]}</div><button class="btn btn-sm btn-secondary" style="align-self:flex-start" data-act="gotab" data-to="${x[3]}">Use it in the app</button></div></details>`).join("")}</div>
+  <p class="xs faint">Retold in simple words from Eat That Frog! by Brian Tracy. Read these again and again until they are habits.</p>
+  ${help("How to use 21 Rules",["Every morning read the <b>Rule of the day</b> (30 seconds) and do its <b>Do it now</b> part.","Tap any rule below to open it.","Tap <b>Use it in the app</b> to jump to where you use that rule.","In 21 days you will have gone through the whole book once."])}`;
 }
 
-let keepCleared=false;
+// ================= RENDER =================
+let keepCleared=false, lastTab=null;
 function render(){
   const app=document.getElementById("app");
-  const ae=document.activeElement, active=ae&&ae.id;
+  const ae=document.activeElement, active=ae&&app.contains(ae)&&ae.id;
   const typing=active&&(ae.tagName==="INPUT"||ae.tagName==="TEXTAREA")&&ae.type!=="range"?{v:ae.value,s:ae.selectionStart,e:ae.selectionEnd}:null;
   const y=window.scrollY;
   app.innerHTML=ui.tab==="lists"?viewLists():ui.tab==="goals"?viewGoals():ui.tab==="me"?viewMe():ui.tab==="rules"?viewRules():viewToday();
+  if(lastTab!==ui.tab){ app.classList.remove("enter"); void app.offsetWidth; if(lastTab!==null) app.classList.add("enter"); lastTab=ui.tab; }
   setSync(syncMode);
-  document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===ui.tab)));
-  if(active){const el=document.getElementById(active); if(el&&(el.tagName==="INPUT"||el.tagName==="TEXTAREA")&&el.type!=="range"&&!el.disabled) el.focus({preventScroll:true}); if(typing&&el.value!==typing.v&&!keepCleared){ el.value=typing.v; try{el.setSelectionRange(typing.s,typing.e)}catch(x){} } }
-  keepCleared=false;
+  document.querySelectorAll("nav.tabs button").forEach(b=>{ const on=b.dataset.tab===ui.tab; b.setAttribute("aria-selected",String(on)); if(on) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  if(active){const el=document.getElementById(active); if(el&&(el.tagName==="INPUT"||el.tagName==="TEXTAREA")&&el.type!=="range"&&!el.disabled) el.focus({preventScroll:true}); if(el&&typing&&el.value!==typing.v&&!keepCleared){ el.value=typing.v; try{el.setSelectionRange(typing.s,typing.e)}catch(x){} } }
   window.scrollTo(0,y);
-  if(ui.wiz!=null) renderWiz();
+  refreshSheet();
+  keepCleared=false; ui.flash=null; ui.popId=null;
 }
 
-// ================= OVERLAYS =================
-const layer=document.getElementById("layer");
-function closeLayer(){layer.innerHTML="";stopTimer();ui.wiz=null;}
+// ================= CELEBRATION + FOCUS MODE =================
 function party(){
-  layer.innerHTML=`<div class="overlay" data-close="1"><div class="box center" role="dialog" aria-label="Frog eaten"><svg class="frogsvg" aria-hidden="true"><use href="#frogfull"/></svg><h2>Yum! Frog eaten!</h2><p class="muted">The hardest job is done. That is probably the worst thing that will happen to you all day.</p><p><b>${streak()}</b> day${streak()===1?"":"s"} in a row · ${Math.max(0,21-streak())} to go for the 21-day habit</p><button class="btn primary" data-close="1" id="party-ok">Yay!</button></div></div>`;
-  document.getElementById("party-ok").focus();
+  const st=streak(); layerToken++; const tok=layerToken; ui.sheet=null;
+  layer.className="";
+  layer.innerHTML=`<div class="celebrate" data-close="1" role="dialog" aria-modal="true" aria-label="Frog eaten"><div class="card">
+    <div class="badge">${FROG(true)}<span class="tick"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7"/></svg></span></div>
+    <h2>Frog eaten!</h2><p class="muted">The hardest job is done. The rest of the day is easier now.</p>
+    <span class="chip warn">${I("flame")}${st}-day streak · ${Math.max(0,21-st)} to go</span>
+    <button class="btn btn-primary btn-block" data-close="1" id="party-ok">Nice!</button></div></div>`;
+  lockScroll(true);
+  document.getElementById("party-ok").focus({preventScroll:true});
+  setTimeout(()=>{ if(tok===layerToken&&layer.querySelector(".celebrate")) closeLayer(); },2400);
 }
 // Focus timer: Swiss cheese (10 min) and large chunks (30/60/90). Rules 8, 18, 19, 20, 21.
-let timer={id:null,end:0,task:null,mins:0,lock:null};
-function stopTimer(){if(timer.id)clearInterval(timer.id);timer.id=null;try{timer.lock&&timer.lock.release()}catch(e){}timer.lock=null;}
-function openFocus(taskId){
-  const t=taskId?byId(taskId):null;
-  layer.innerHTML=`<div class="overlay"><div class="box" role="dialog" aria-label="Start working">
-    <h2>${t?esc(t.text):"Pick a job and start"}</h2>
-    <div class="prep"><b>Get ready first</b> <span class="src">Rule 8</span>
-      <label class="habit"><input type="checkbox" id="p1"> <span>Desk clear. Only this job in front of me.</span></label>
-      <label class="habit"><input type="checkbox" id="p2"> <span>Everything I need is in reach${t&&t.need?": "+esc(t.need):""}.</span></label>
-      <label class="habit"><input type="checkbox" id="p3"> <span>Phone off or away. Sit up straight.</span></label>
-    </div>
-    <p class="small muted">Choose how long. Then say "Let's get to work!"</p>
-    <div class="pick">
-      <button class="btn sun" data-go="10">10 min<small>Swiss cheese: just a bite</small></button>
-      <button class="btn primary" data-go="30">30 min<small>Small chunk</small></button>
-      <button class="btn primary" data-go="60">60 min<small>Big chunk</small></button>
-      <button class="btn primary" data-go="90">90 min<small>Biggest chunk</small></button>
-    </div>
-    <button class="btn ghost" data-close="1">Cancel</button></div></div>`;
-  timer.task=taskId;
-}
+let timer={id:null,end:0,task:null,mins:0,lock:null,paused:false,left:0};
+function stopTimer(){if(timer.id)clearInterval(timer.id);timer.id=null;timer.paused=false;try{timer.lock&&timer.lock.release()}catch(e){}timer.lock=null;}
+function openFocus(taskId){ timer.task=taskId||null; openSheet("prep",{id:taskId||null}); }
+const RING_C=2*Math.PI*54;
 function startTimer(mins){
-  timer.mins=mins; timer.end=Date.now()+mins*60000;
+  timer.mins=mins; timer.end=Date.now()+mins*60000; timer.paused=false;
   const t=timer.task?byId(timer.task):null;
-  layer.innerHTML=`<div class="overlay"><div class="box center" role="dialog" aria-label="Focus timer">
-    <span class="src">Single handle: stay on this one job · Rule 21</span>
-    <div class="focus-task">${t?esc(t.text):"My most important job"}</div>
-    <div class="clock" id="clock" aria-live="off">${mins}:00</div>
-    <p class="muted" id="cheer">Let's get to work!</p>
-    <div class="row" style="justify-content:center">
-      <button class="btn sun" id="backbtn">I got distracted</button>
-      ${t?`<button class="btn primary" data-act="done" data-id="${t.id}" data-close="1">Finished it!</button>`:""}
-      <button class="btn ghost" data-close="1">Stop</button></div></div></div>`;
-  stopTimer();
+  layerToken++; ui.sheet=null; layer.className="";
+  layer.innerHTML=`<div class="focus" role="dialog" aria-modal="true" aria-label="Focus timer">
+    <button class="icon-btn top-x" data-close="1" aria-label="End focus">${I("x")}</button>
+    ${FROG(false)}
+    <div class="eyebrow">Focus · stay with this one job · Rule 21</div>
+    <div class="ftask">${t?esc(t.text):"My most important job"}</div>
+    <div class="ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="track" cx="60" cy="60" r="54"/><circle class="bar" id="ringbar" cx="60" cy="60" r="54" stroke-dasharray="${RING_C}" stroke-dashoffset="0"/></svg>
+      <div class="time"><b id="clock" aria-live="off">${mins}:00</b><small id="clock-sub">of ${mins} min</small></div></div>
+    <p class="cheer" id="cheer" aria-live="polite">Let's get to work!</p>
+    <div class="actions">
+      <button class="btn btn-secondary" id="pausebtn">${I("pause")}<span>Pause</span></button>
+      <button class="btn btn-ghost" id="backbtn">I got distracted</button>
+      ${t?`<button class="btn btn-primary" data-act="done" data-id="${t.id}" data-close="1">${I("check")}Finished it!</button>`:""}
+    </div>
+    <button class="btn btn-plain" data-close="1">End session</button></div>`;
+  lockScroll(true);
+  if(timer.id)clearInterval(timer.id); timer.id=null;
   try{navigator.wakeLock&&navigator.wakeLock.request("screen").then(l=>timer.lock=l).catch(()=>{})}catch(e){}
-  const tick=()=>{const left=Math.max(0,timer.end-Date.now());const m=Math.floor(left/60000),s=Math.floor(left%60000/1000);const c=document.getElementById("clock");if(!c){stopTimer();return}c.textContent=m+":"+String(s).padStart(2,"0");
-    if(left<=0){stopTimer();document.getElementById("cheer").innerHTML="<b>Time's up!</b> Feel like one more slice? Once you start, it is easier to keep going.";}};
+  const tick=()=>{ if(timer.paused) return; const left=Math.max(0,timer.end-Date.now()); const m=Math.floor(left/60000),s=Math.floor(left%60000/1000); const c=document.getElementById("clock"); if(!c){stopTimer();return}
+    c.textContent=m+":"+String(s).padStart(2,"0"); const rb=document.getElementById("ringbar"); if(rb) rb.setAttribute("stroke-dashoffset",String(RING_C*(1-left/(timer.mins*60000))));
+    if(left<=0){ clearInterval(timer.id); timer.id=null; document.getElementById("cheer").innerHTML="<b>Time's up!</b> Feel like one more slice? Once you start, it is easier to keep going."; const pb=document.getElementById("pausebtn"); if(pb) pb.hidden=true; } };
   tick(); timer.id=setInterval(tick,500);
+  setTimeout(()=>{ const pb=document.getElementById("pausebtn"); if(pb) pb.focus({preventScroll:true}); },50);
 }
+function togglePause(){
+  const pb=document.getElementById("pausebtn"); if(!pb) return;
+  if(!timer.paused){ timer.paused=true; timer.left=Math.max(0,timer.end-Date.now()); pb.innerHTML=I("play")+"<span>Resume</span>"; const c=document.getElementById("cheer"); if(c) c.textContent="Paused. Come back to this same job."; }
+  else { timer.paused=false; timer.end=Date.now()+timer.left; pb.innerHTML=I("pause")+"<span>Pause</span>"; const c=document.getElementById("cheer"); if(c) c.innerHTML="<b>Back to work!</b>"; }
+}
+
+// ================= SWIPE + LONG PRESS ON TASK ROWS =================
+(function(){
+  const app=document.getElementById("app"); let sw=null;
+  const reset=li=>{ const inn=li&&li.querySelector(".t-in"); if(inn) inn.style.transform=""; if(li) li.classList.remove("swiping","dragging","left","right"); };
+  app.addEventListener("touchstart",e=>{
+    const li=e.target.closest("li.task"); if(!li||e.touches.length!==1||e.target.closest("input,textarea,select")) { sw=null; return; }
+    sw={li,x:e.touches[0].clientX,y:e.touches[0].clientY,dx:0,mode:null};
+    sw.lp=setTimeout(()=>{ if(sw&&!sw.mode){ sw.mode="press"; try{navigator.vibrate&&navigator.vibrate(8)}catch(x){} openTaskSheet(li.dataset.id); } },550);
+  },{passive:true});
+  app.addEventListener("touchmove",e=>{
+    if(!sw) return; const dx=e.touches[0].clientX-sw.x, dy=e.touches[0].clientY-sw.y;
+    if(!sw.mode){ if(Math.abs(dx)>10&&Math.abs(dx)>Math.abs(dy)*1.3){ sw.mode="swipe"; clearTimeout(sw.lp); sw.li.classList.add("swiping","dragging"); } else if(Math.abs(dy)>10){ clearTimeout(sw.lp); sw=null; return; } else return; }
+    if(sw.mode!=="swipe") return;
+    if(e.cancelable) e.preventDefault();
+    sw.dx=Math.max(-130,Math.min(130,dx)); const inn=sw.li.querySelector(".t-in"); inn.style.transform=`translateX(${sw.dx}px)`;
+    sw.li.classList.toggle("right",sw.dx>0); sw.li.classList.toggle("left",sw.dx<0);
+  },{passive:false});
+  const end=()=>{ if(!sw) return; clearTimeout(sw.lp); const {li,dx,mode}=sw; sw=null;
+    if(mode==="press"){ swallowClick=true; setTimeout(()=>swallowClick=false,450); return; }
+    if(mode!=="swipe") return; li.classList.remove("dragging");
+    if(dx>80){ const t=byId(li.dataset.id); reset(li); if(t) animatedDone(t,li); }
+    else if(dx<-80){ reset(li); openTaskSheet(li.dataset.id); }
+    else reset(li);
+    swallowClick=true; setTimeout(()=>swallowClick=false,350); };
+  app.addEventListener("touchend",end); app.addEventListener("touchcancel",end);
+  app.addEventListener("contextmenu",e=>{ const li=e.target.closest("li.task"); if(!li||e.target.closest("input,textarea")) return; e.preventDefault(); openTaskSheet(li.dataset.id); });
+})();
+let swallowClick=false;
 
 // ================= FREE AI (Gemini) + SETTINGS =================
 let cfg={key:"",model:"gemini-2.5-flash",lastBackup:""};
@@ -892,42 +1371,58 @@ document.addEventListener("change",e=>{
 // ================= ACTIONS =================
 function setLetter(t,l){ t.letter=l; if(l==="A"){ t.rank=state.tasks.filter(x=>x.list===t.list&&x.letter==="A"&&!x.done&&x!==t).length+1; } }
 function eatFrog(t){ if(!state.frogLog[dkey()]){ state.frogLog[dkey()]=t.id; return true; } return false; }
+// Complete / un-complete a task (same rules as before: tadpole warning, frog log, undo).
+function doDone(t){
+  if(!t) return;
+  const wasA1=t===a1();
+  if(!t.done&&(t.letter==="B"||t.letter==="C")&&t.list==="day"&&a1()){ toast("Tadpole before frog! Never do a "+t.letter+" while an A is left. (Rule 5)"); }
+  t.done=!t.done; t.doneAt=t.done?Date.now():null;
+  if(t.done&&wasA1&&eatFrog(t)){ commit(); party(); return; }
+  if(!t.done&&state.frogLog[dkey()]===t.id){ state.frogLog[dkey()]=""; t.letter="A"; t.rank=0.5; }
+  commit();
+}
+// Play the check + collapse animation first, then apply the change.
+function animatedDone(t,li){
+  if(!t) return;
+  if(li&&!t.done&&!reduceMotion()){ li.classList.add("completing"); setTimeout(()=>doDone(t),330); }
+  else doDone(t);
+}
 
 document.addEventListener("click",e=>{
+  if(swallowClick){ swallowClick=false; e.preventDefault(); e.stopImmediatePropagation(); return; }
   if(e.target.closest("[data-close]")&&!e.target.closest("[data-act]")){ if(e.target.dataset.close||e.target.closest("button[data-close]")) { closeLayer(); return; } }
   const go=e.target.closest("[data-go]"); if(go){startTimer(+go.dataset.go);return}
-  const pk=e.target.closest("[data-pick]"); if(pk){ const t=byId(pk.dataset.id); if(t){ const l=pk.dataset.pick; setLetter(t,l); closeLayer(); commit();
-      toast(l==="A"?(t===a1()?"A-1: this is your frog! 🐸":"A job. Order your A jobs with ⋯ → Move up."):l==="D"?"D: hand it to someone else if you can.":l==="E"?"E: delete it, or ⋯ → Not doing.":l?"Letter "+l+" set.":"Letter removed."); } return; }
+  const pk=e.target.closest("[data-pick]"); if(pk){ const t=byId(pk.dataset.id); if(t){ const l=pk.dataset.pick; setLetter(t,l); ui.popId=t.id; closeLayer(); commit();
+      toast(l==="A"?(t===a1()?"A-1: this is your frog! 🐸":"A job. Order your A jobs: tap the job → Up / Down."):l==="D"?"D: hand it to someone else if you can.":l==="E"?"E: delete it, or move it to Not doing.":l?"Letter "+l+" set.":"Letter removed."); } return; }
   const tr=e.target.closest("[data-tour]"); if(tr){ openTour(+tr.dataset.tour); return; }
   if(e.target.closest("[data-tourdone]")){ cfg.toured=true; saveCfg(); closeLayer(); return; }
-  if(e.target.id==="backbtn"){const c=document.getElementById("cheer");if(c)c.innerHTML="<b>Back to work! Back to work!</b> Pick up exactly where you stopped.";return}
+  if(e.target.closest("#backbtn")){const c=document.getElementById("cheer");if(c)c.innerHTML="<b>Back to work! Back to work!</b> Pick up exactly where you stopped.";if(timer.paused)togglePause();return}
+  if(e.target.closest("#pausebtn")){ togglePause(); return; }
   const nb=e.target.closest("nav.tabs button"); if(nb){ui.tab=nb.dataset.tab;ui.open=null;ui.panel=null;saveUI();render();window.scrollTo(0,0);return}
   const b=e.target.closest("[data-act]"); if(!b||!state) return;
+  if(b.disabled||b.getAttribute("aria-busy")==="true") return;
   const a=b.dataset.act, t=b.dataset.id?byId(b.dataset.id):null;
   if(b.dataset.close) closeLayer();
   switch(a){
-    case "done": {
-      if(!t) return;
-      const wasA1=t===a1();
-      if(!t.done&&(t.letter==="B"||t.letter==="C")&&t.list==="day"&&a1()){ toast("Tadpole before frog! Never do a "+t.letter+" while an A is left. (Rule 5)"); }
-      t.done=!t.done; t.doneAt=t.done?Date.now():null;
-      if(t.done&&wasA1&&eatFrog(t)){ commit(); party(); return; }
-      if(!t.done&&state.frogLog[dkey()]===t.id){ state.frogLog[dkey()]=""; t.letter="A"; t.rank=0.5; }
-      break; }
+    case "done": { if(!t) return; animatedDone(t,b.closest("li.task")); return; }
+    case "task": if(!t) return; openTaskSheet(t.id); return;
     case "letter": if(!t) return; openLetterPicker(t.id); return;
-    case "setletter": { if(!t) return; setLetter(t,b.dataset.l); break; }
+    case "setletter": { if(!t) return; setLetter(t,b.dataset.l); ui.popId=t.id; break; }
     case "wizard": openWizard(0); return;
     case "wiz": ui.wiz=+b.dataset.step; ui.wizFocus=ui.wiz===1; renderWiz(); return;
     case "wizclose": closeLayer(); return;
     case "wizfinish": { const p=state.plan[dkey()]||(state.plan[dkey()]={}); PLAN_STEPS.forEach(([k])=>p[k]=true); todayHabits().plan=true; closeLayer(); commit(); toast("Plan ready. Sleep well! 🐸"); return; }
     case "tour": openTour(0); return;
     case "guide": openGuide(); return;
-    case "focusadd": { ui.tab="today"; render(); const i=document.getElementById("add-day"); if(i){ i.scrollIntoView({block:"center"}); i.focus(); } return; }
+    case "focusadd": { ui.tab="today"; saveUI(); render(); const i=document.getElementById("add-day"); if(i){ i.scrollIntoView({block:"center",behavior:reduceMotion()?"auto":"smooth"}); i.focus({preventScroll:true}); } return; }
     case "open": ui.open=ui.open===b.dataset.id?null:b.dataset.id; ui.panel=null; render(); return;
-    case "panel": ui.panel=ui.panel===b.dataset.p?null:b.dataset.p; render(); { const el=document.getElementById(ui.panel==="slice"?"slice-in":"due-in"); if(el) el.focus(); } return;
-    case "up": case "down": { const list=state.tasks.filter(x=>x.list===t.list&&x.letter==="A"&&!x.done).sort((x,y)=>x.rank-y.rank); const i=list.indexOf(t), j=a==="up"?i-1:i+1; if(j<0||j>=list.length) return; const r=list[j].rank; list[j].rank=t.rank; t.rank=r; break; }
+    case "panel": ui.panel=ui.panel===b.dataset.p?null:b.dataset.p; render(); return;
+    case "up": case "down": { const list=state.tasks.filter(x=>x.list===t.list&&x.letter==="A"&&!x.done).sort((x,y)=>x.rank-y.rank); const i=list.indexOf(t), j=a==="up"?i-1:i+1; if(j<0||j>=list.length) return; const r=list[j].rank; list[j].rank=t.rank; t.rank=r; ui.popId=t.id; break; }
     case "move": if(!t) return; t.list=b.dataset.to; if(t.letter==="A") t.rank=99; ui.open=null; toast("Moved to "+LISTS.find(l=>l.id===t.list).name); break;
-    case "del": state.tasks=state.tasks.filter(x=>x!==t); ui.open=null; break;
+    case "del": { if(!t) return; const copy=JSON.parse(JSON.stringify(t)); const li=document.querySelector(`li.task[data-id="${t.id}"]`);
+      const run=()=>{ state.tasks=state.tasks.filter(x=>x.id!==copy.id); ui.open=null; commit();
+        toast("Job deleted",{label:"Undo",fn:()=>{ if(!byId(copy.id)){ state.tasks.push(copy); delete state.tomb[copy.id]; ui.flash=copy.id; commit(); } }}); };
+      if(li&&!reduceMotion()){ li.classList.add("removing"); setTimeout(run,300); } else run(); return; }
     case "slicedone": { const s=t.slices.find(x=>x.id===b.dataset.s); s.done=!s.done; break; }
     case "slicedel": t.slices=t.slices.filter(x=>x.id!==b.dataset.s); break;
     case "focus": openFocus(b.dataset.id||null); return;
@@ -938,7 +1433,7 @@ document.addEventListener("click",e=>{
     case "list": ui.list=b.dataset.to; ui.open=null; saveUI(); render(); return;
     case "golist": ui.tab="lists"; ui.list=b.dataset.to; saveUI(); render(); window.scrollTo(0,0); return;
     case "gotab": ui.tab=b.dataset.to; saveUI(); render(); window.scrollTo(0,0); return;
-    case "clearex": state.tasks=state.tasks.filter(x=>!x.ex); state.goals=state.goals.filter(x=>!x.ex); break;
+    case "clearex": state.tasks=state.tasks.filter(x=>!x.ex); state.goals=state.goals.filter(x=>!x.ex); toast("Examples removed. It's all yours now."); break;
     case "major": state.goals.forEach(g=>g.major=g.id===b.dataset.id); toast("Major goal set. Do something for it every day."); break;
     case "delgoal": state.goals=state.goals.filter(g=>g.id!==b.dataset.id); break;
     case "stepdone": { const g=goalById(b.dataset.id); const s=g.steps.find(x=>x.id===b.dataset.s); s.done=!s.done; if(s.done&&g.major) todayHabits().goal=true; break; }
@@ -947,14 +1442,14 @@ document.addEventListener("click",e=>{
     case "savekey": cfg.key=(document.getElementById("gkey").value||"").trim(); cfg.model=(document.getElementById("gmodel").value||"gemini-2.5-flash").trim(); saveCfg(); ai=makeAI(); render(); toast(ai?"Key saved. AI is on.":"Key removed."); return;
     case "delkey": cfg.key=""; saveCfg(); ai=null; render(); toast("Key removed."); return;
     case "testkey": { cfg.key=(document.getElementById("gkey").value||"").trim(); cfg.model=(document.getElementById("gmodel").value||"gemini-2.5-flash").trim(); saveCfg(); ai=makeAI(); if(!ai){toast("Paste a key first.");return}
-      b.disabled=true; b.textContent="Testing…"; askSteps('List 2 tiny steps to drink a glass of water.').then(st=>{ if(st) toast("It works! AI is on."); render(); }); return; }
+      b.setAttribute("aria-busy","true"); b.textContent="Testing…"; askSteps('List 2 tiny steps to drink a glass of water.').then(st=>{ if(st) toast("It works! AI is on."); render(); }); return; }
     case "export": exportData(); return;
     case "kradel": state.kra=state.kra.filter(k=>k.id!==b.dataset.id); break;
-    case "aislice": { if(!t) return; if(!ai){needKey();return;} b.disabled=true; b.textContent="Thinking…";
+    case "aislice": { if(!t) return; if(!ai){needKey();return;} b.setAttribute("aria-busy","true"); const tx=b.querySelector(".txt"); if(tx) tx.innerHTML="AI is thinking…<small>Slicing your job</small>"; else b.textContent="Thinking…";
       askSteps(`Break this task into 3 to 6 thin "salami slices": tiny, concrete steps, each doable in 5 to 25 minutes, in the order to do them, in very simple words a child could follow (max 10 words each). Task: "${t.text}".`)
-        .then(st=>{ if(!st) return; t.slices=(t.slices||[]).concat(st.map(x=>({id:uidGen(),text:x,done:false}))); ui.open=t.id; commit(); toast("Sliced into "+st.length+" small steps"); });
+        .then(st=>{ if(!st) return; t.slices=(t.slices||[]).concat(st.map(x=>({id:uidGen(),text:x,done:false}))); commit(); toast("Sliced into "+st.length+" small steps"); });
       return; }
-    case "aisteps": { const g=goalById(b.dataset.id); if(!g) return; if(!ai){needKey();return;} b.disabled=true; b.textContent="Thinking…";
+    case "aisteps": { const g=goalById(b.dataset.id); if(!g) return; if(!ai){needKey();return;} b.setAttribute("aria-busy","true"); b.textContent="AI is thinking…";
       askSteps(`A person wrote this goal: "${g.text}". Following step 4 and 5 of Brian Tracy's goal method, list 4 to 8 concrete actions they must do to reach it, in the order to do them, in very simple words (max 12 words each).`)
         .then(st=>{ if(!st) return; g.steps=g.steps.concat(st.map(x=>({id:uidGen(),text:x,done:false}))); commit(); toast("Added "+st.length+" steps"); });
       return; }
@@ -965,17 +1460,17 @@ document.addEventListener("click",e=>{
 function askSteps(prompt){
   return ai.json(prompt+' Reply only with JSON: {"steps":["...","..."]}',{modelTier:"quick"})
     .then(r=>{const st=(r&&Array.isArray(r.steps)?r.steps:[]).filter(x=>typeof x==="string"&&x.trim()).slice(0,8).map(x=>clip(x)); if(!st.length){toast("AI gave no steps. Try again.");render();return null} return st;})
-    .catch(err=>{ const c=err&&err.code; toast(c==="bad_key"?"Gemini key is not working. Check it in Me → Settings.":c==="rate_limited"?"Free AI limit reached. Try again in a minute.":c==="offline"?"No internet. AI needs internet.":"AI had a problem. Try again."); render(); return null;});
+    .catch(err=>{ const c=err&&err.code; console.warn("Gemini:",c||err); toast(c==="bad_key"?"Gemini key isn't working. Check it in Me → Settings.":c==="rate_limited"?"Free AI limit reached. Try again in a minute.":c==="offline"?"AI needs internet. Your plan still works offline.":"AI is unavailable right now. Try again."); render(); return null;});
 }
-layer.addEventListener("click",e=>{ if(e.target.classList.contains("overlay")&&e.target.dataset.close) closeLayer(); });
 
 document.addEventListener("submit",e=>{
   const f=e.target; e.preventDefault(); if(!state) return; keepCleared=true;
   const kind=f.dataset.form; const val=(id)=>{const el=document.getElementById(id);return el?el.value:""};
-  if(kind==="add"){const i=f.querySelector("input");const v=clip(i.value);if(!v)return;state.tasks.push({id:uidGen(),text:v,list:f.dataset.list,letter:f.dataset.list==="no"?"E":"",rank:0,done:false,created:Date.now(),slices:[],need:"",due:""});i.value="";commit();}
-  else if(kind==="wizadd"){const v=clip(val("wiz-in"));if(!v)return;state.tasks.push({id:uidGen(),text:v,list:"day",letter:"",rank:0,done:false,created:Date.now(),slices:[],need:"",due:""});ui.wizFocus=true;commit();}
+  if(kind==="add"){const i=f.querySelector("input");const v=clip(i.value);if(!v)return;const nt={id:uidGen(),text:v,list:f.dataset.list,letter:f.dataset.list==="no"?"E":"",rank:0,done:false,created:Date.now(),slices:[],need:"",due:""};state.tasks.push(nt);ui.flash=nt.id;i.value="";commit();const ni=document.getElementById(i.id);if(ni)ni.focus({preventScroll:true});}
+  else if(kind==="rename"){const t=byId(f.dataset.id);const v=clip(val("ts-title"),300);if(!t||!v)return;t.text=v;commit();toast("Saved");}
+  else if(kind==="wizadd"){const v=clip(val("wiz-in"));if(!v)return;state.tasks.push({id:uidGen(),text:v,list:"day",letter:"",rank:0,done:false,created:Date.now(),slices:[],need:"",due:""});ui.wizFocus=true;commit();const wi=document.getElementById("wiz-in");if(wi){wi.value="";wi.focus({preventScroll:true});}}
   else if(kind==="wizneed"){const f=a1();if(!f)return;f.need=clip(val("wiz-need"),300);commit();toast("Saved. Lay these out now.");}
-  else if(kind==="slice"){const t=byId(f.dataset.id);const v=clip(val("slice-in"));if(!v||!t)return;t.slices.push({id:uidGen(),text:v,done:false});commit();}
+  else if(kind==="slice"){const t=byId(f.dataset.id);const v=clip(val("slice-in"));if(!v||!t)return;t.slices.push({id:uidGen(),text:v,done:false});commit();const si=document.getElementById("slice-in");if(si){si.value="";si.focus({preventScroll:true});}}
   else if(kind==="edit"){const t=byId(f.dataset.id);if(!t)return;t.due=val("due-in");t.need=clip(val("need-in"),300);ui.panel=null;commit();toast("Saved");}
   else if(kind==="need"){const t=byId(f.dataset.id);if(!t)return;t.need=clip(val("need-today"),300);const p=state.plan[dkey()]||(state.plan[dkey()]={});p.ready=true;commit();toast("Saved. Lay these out tonight.");}
   else if(kind==="goal"){const v=clip(val("g-text"));if(!v||state.goals.length>=10)return;state.goals.push({id:uidGen(),text:v,deadline:"",major:!state.goals.some(g=>g.major),blocker:"",steps:[]});commit();toast("Written down. A written goal is not just a wish.");}
@@ -987,8 +1482,8 @@ document.addEventListener("input",e=>{const r=e.target.closest("[data-kra]");if(
 document.addEventListener("change",e=>{
   const el=e.target;
   if(el.closest("[data-kra]")){commit();return}
-  if(el.dataset.ans){state.answers[el.dataset.ans]=clip(el.value,1000);quietCommit();return}
-  if(el.dataset.field){state[el.dataset.field]=clip(el.value,300); if(el.tagName==="SELECT") commit(); else quietCommit();}
+  if(el.dataset.ans){state.answers[el.dataset.ans]=clip(el.value,1000);quietCommit();toast("Saved");return}
+  if(el.dataset.field){state[el.dataset.field]=clip(el.value,300); if(el.tagName==="SELECT") commit(); else { quietCommit(); toast("Saved"); }}
 });
 
 // ================= SYNC (Firebase, free Spark plan) =================
@@ -1043,7 +1538,7 @@ function onUser(u){
   fbUser=u||null; firstSnap=true; if(unsub){unsub();unsub=null;}
   if(!fbUser){ locked=null; setSync("local"); render(); return; }
   setSync("saving"); render();
-  unsub=docRef().onSnapshot(snap=>{ handleRemote(snap); },err=>{ setSync("error"); authMsg="Sync stopped: "+(err&&err.code||"error")+". Reload the app."; render(); });
+  unsub=docRef().onSnapshot(snap=>{ handleRemote(snap); },err=>{ console.warn("Sync stopped:",err&&err.code,err); setSync("error"); render(); });
 }
 async function handleRemote(snap){
   if(snap.metadata.hasPendingWrites) return;
@@ -1077,8 +1572,8 @@ async function pushNow(){
   }catch(e){ setSync(navigator.onLine?"error":"offline"); }
   writing=false; if(pendingPush){ pendingPush=false; pushNow(); }
 }
-window.addEventListener("online",()=>{ if(!fbReady) startFirebase(); else schedulePush(100); });
-window.addEventListener("offline",()=>setSync(fbUser?"offline":"local"));
+window.addEventListener("online",()=>{ toast(fbUser?"Back online. Syncing…":"Back online."); if(!fbReady) startFirebase(); else schedulePush(100); });
+window.addEventListener("offline",()=>{ setSync(fbUser?"offline":"local"); toast("You're offline. Changes are saved on this device."); });
 
 function authError(e){
   const c=e&&e.code||"";
@@ -1088,39 +1583,45 @@ function authError(e){
     "auth/account-exists-with-different-credential":"This email already uses a password. Sign in with email and password.","auth/admin-restricted-operation":"New accounts are turned off for this app. Sign in with your existing account.","auth/operation-not-allowed":"This sign-in method is turned off in Firebase.","auth/unauthorized-domain":"This website is not allowed yet in Firebase (Authorized domains)."})[c]||("Sign-in problem: "+(c||"unknown"));
 }
 function accountCard(){
-  if(!fbReady) return `<section class="card" id="sync-card"><div class="section-head"><h2>Sync phone and laptop</h2></div>
-    <p class="small muted">${fbFailed?"Can't reach the sync service right now. Check your internet, then":"Loading sync…"} Your plan is still saved on this device.</p>
-    ${fbFailed?'<div class="row"><button class="btn" data-act="retryfb">Try again</button></div>':""}</section>`;
-  if(!fbUser) return `<section class="card" id="sync-card">
-    <div class="section-head"><h2>Sync phone and laptop</h2><span class="src">Free · private</span></div>
+  const alert=authMsg?`<div class="alert${/sent|Unlocked/.test(authMsg)?" ok":""}" role="alert">${I(/sent|Unlocked/.test(authMsg)?"check":"help")}<span>${esc(authMsg)}</span></div>`:"";
+  if(!fbReady) return `<section class="group" id="sync-card"><div class="pad">
+    <div class="spread"><b>${I("cloud")} Sync phone and laptop</b><span class="chip sm">${fbFailed?"Unavailable":"Loading…"}</span></div>
+    <p class="small muted">${fbFailed?"Can't reach the sync service right now. Your plan is safely saved on this device and works offline.":"Getting sync ready…"}</p>
+    ${fbFailed?`<button class="btn btn-secondary" data-act="retryfb">Try again</button>`:""}</div></section>`;
+  if(!fbUser) return `<section class="group" id="sync-card"><div class="pad">
+    <div class="spread"><b>${I("cloud")} Sync phone and laptop</b><span class="chip sm accent">Free · private</span></div>
     <p class="small muted">Sign in with the <b>same email</b> on your iPhone and your Mac. Your plan then updates on both by itself. Only you can read it.</p>
-    <form class="panel" data-form="auth">
-      <label class="f">Email<input class="in" type="email" id="acc-email" autocomplete="username" required></label>
-      <label class="f">Password (6+ characters)<input class="in" type="password" id="acc-pass" autocomplete="current-password" minlength="6" required></label>
-      <div class="row"><button class="btn primary" data-mode="in" ${authBusy?"disabled":""}>Sign in</button><button class="btn" data-mode="up" ${authBusy?"disabled":""}>Create account</button><button class="btn tiny ghost" type="button" data-act="resetpw">Forgot password</button></div>
+    <form class="stack" data-form="auth">
+      <label class="field">Email<input type="email" id="acc-email" autocomplete="username" inputmode="email" required></label>
+      <label class="field">Password (6+ characters)<input type="password" id="acc-pass" autocomplete="current-password" minlength="6" required></label>
+      <div class="row"><button class="btn btn-primary" data-mode="in" ${authBusy?'disabled aria-busy="true"':""}>${authBusy?"Signing in…":"Sign in"}</button><button class="btn btn-secondary" data-mode="up" ${authBusy?"disabled":""}>Create account</button><button class="btn btn-plain" type="button" data-act="resetpw">Forgot password?</button></div>
     </form>
-    ${isStandalone?"":`<div class="row"><button class="btn ghost" data-act="google">Or sign in with Google</button><span class="small muted">On the iPhone home-screen app, use email and password.</span></div>`}
-    ${authMsg?`<p class="small" role="alert"><b>${esc(authMsg)}</b></p>`:""}
-  </section>`;
-  return `<section class="card" id="sync-card">
-    <div class="section-head"><h2>Sync phone and laptop</h2><span class="sync ${syncMode==="synced"?"ok":""}">${esc(({synced:"Synced",saving:"Syncing…",offline:"Offline",locked:"Locked",error:"Problem"})[syncMode]||"")}</span></div>
+    ${isStandalone?"":`<button class="btn btn-ghost" data-act="google">Or sign in with Google</button><p class="xs faint">On the iPhone home-screen app, use email and password.</p>`}
+    ${alert}</div></section>`;
+  const SL={synced:"Synced",saving:"Syncing…",offline:"Offline",locked:"Locked",error:"Paused",local:"On this device"};
+  return `<section class="group" id="sync-card"><div class="pad">
+    <div class="spread"><b>${I("cloud")} Sync phone and laptop</b><span class="sync" data-s="${syncMode}"><span class="dot"></span>${esc(SL[syncMode]||"")}</span></div>
     <p class="small">Signed in as <b>${esc(fbUser.email||"Google account")}</b>. Sign in with the same account on your other devices.</p>
-    ${locked?`<form class="panel" data-form="unlock"><p class="small"><b>Your data is locked with a passphrase.</b> Type it once on this device to unlock.</p>
-      <label class="f">Passphrase<input class="in" type="password" id="unlock-pass" autocomplete="off" required></label><button class="btn primary">Unlock</button></form>`
-    :cfg.lock?`<p class="small">🔒 <b>Extra lock is on.</b> Your plan is encrypted on this device before upload. Even Google can't read it.</p><div class="row"><button class="btn tiny ghost" data-act="lockoff">Turn extra lock off</button></div>`
-    :`<details><summary class="small"><b>Extra lock (optional)</b></summary>
-      <form class="panel" data-form="lockon" style="margin-top:8px"><p class="small muted">Scrambles your plan with a passphrase before upload, so only your devices can read it. <b>If you forget the passphrase, synced data can't be recovered</b> (this device keeps its copy). Write it down.</p>
-      <label class="f">Passphrase (8+ characters)<input class="in" type="password" id="lock-p1" minlength="8" autocomplete="new-password" required></label>
-      <label class="f">Type it again<input class="in" type="password" id="lock-p2" minlength="8" autocomplete="new-password" required></label>
-      <button class="btn primary">Turn on extra lock</button></form></details>`}
-    ${authMsg?`<p class="small" role="alert"><b>${esc(authMsg)}</b></p>`:""}
-    <div class="row"><button class="btn ghost tiny" data-act="signout">Sign out</button><button class="btn ghost tiny" data-act="signoutwipe">Sign out and remove data from this device</button></div>
+    ${syncMode==="error"?`<div class="alert" role="alert">${I("help")}<span>Couldn't sync right now. Your changes are safely stored on this device. We'll try again when you're online.</span></div><button class="btn btn-secondary" data-act="retrysync">Try again</button>`:""}
+    ${syncMode==="offline"?`<div class="notice">${I("cloud")}<p>You're offline. Changes are saved on this device and will sync when you're back online.</p></div>`:""}
+    ${locked?`<form class="stack" data-form="unlock"><p class="small"><b>Your data is locked with a passphrase.</b> Type it once on this device to unlock.</p>
+      <label class="field">Passphrase<input type="password" id="unlock-pass" autocomplete="off" required></label><button class="btn btn-primary">${I("key")}Unlock</button></form>`
+    :cfg.lock?`<div class="notice">${I("lock")}<p><b>Extra lock is on.</b> Your plan is encrypted on this device before upload. Even Google can't read it.</p></div><button class="btn btn-ghost btn-sm" data-act="lockoff">Turn extra lock off</button>`
+    :disc("lock","Extra lock (optional)",`<form class="stack" data-form="lockon"><p class="small muted">Scrambles your plan with a passphrase before upload, so only your devices can read it. <b>If you forget the passphrase, synced data can't be recovered</b> (this device keeps its copy). Write it down.</p>
+      <label class="field">Passphrase (8+ characters)<input type="password" id="lock-p1" minlength="8" autocomplete="new-password" required></label>
+      <label class="field">Type it again<input type="password" id="lock-p2" minlength="8" autocomplete="new-password" required></label>
+      <button class="btn btn-primary">Turn on extra lock</button></form>`)}
+    ${alert}
+    </div>
+    <button class="cell" data-act="signout">${I("out")}<span class="txt">Sign out<small>Your plan stays on this device</small></span></button>
+    <button class="cell danger" data-act="signoutwipe">${I("trash")}<span class="txt">Sign out and remove data from this device<small>Use this on a shared computer</small></span></button>
   </section>`;
 }
 document.addEventListener("click",async e=>{
   const b=e.target.closest("[data-act]"); if(!b) return; const a=b.dataset.act;
   if(a==="gosync"){ ui.tab="me"; saveUI(); render(); const c=document.getElementById("sync-card"); if(c) c.scrollIntoView({behavior:"smooth"}); }
   else if(a==="retryfb"){ fbFailed=false; render(); startFirebase(); }
+  else if(a==="retrysync"){ if(fbUser){ toast("Trying again…"); onUser(fbUser); } }
   else if(a==="google"){ authMsg=""; const pr=new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(pr).catch(err=>{ if(err.code==="auth/popup-blocked"||err.code==="auth/operation-not-supported-in-this-environment") auth.signInWithRedirect(pr); else { authMsg=authError(err); render(); } }); }
   else if(a==="resetpw"){ const em=(document.getElementById("acc-email")||{}).value; if(!em){ authMsg="Type your email first, then tap Forgot password."; render(); return; }
@@ -1150,17 +1651,17 @@ document.addEventListener("submit",async e=>{
 // Pull down at the very top: syncs and reloads the app (which also picks up new versions).
 (function(){
   const el=document.getElementById("ptr"), txt=document.getElementById("ptr-t"), MAX=110, GO=70;
-  let y0=null, dy=0, busy=false;
+  let y0=null, x0=0, dy=0, busy=false;
   const show=d=>{ const k=Math.min(d,MAX); el.style.opacity=k>8?1:0; el.style.transform=`translate(-50%,${k+56}px)`; el.querySelector("svg").style.transform=busy?"":`rotate(${k*3}deg)`; txt.textContent=busy?"Refreshing…":k>=GO?"Let go to refresh":"Pull to refresh"; };
   const reset=()=>{ el.style.transition="transform .25s, opacity .2s"; el.style.opacity=0; el.style.transform="translate(-50%,0)"; setTimeout(()=>el.style.transition="opacity .2s",260); };
   document.addEventListener("touchstart",e=>{
     if(busy||window.scrollY>0||layer.innerHTML||e.touches.length!==1||e.target.closest("input,textarea,select,.seg")){ y0=null; return; }
-    y0=e.touches[0].clientY; dy=0;
+    y0=e.touches[0].clientY; x0=e.touches[0].clientX; dy=0;
   },{passive:true});
   document.addEventListener("touchmove",e=>{
     if(y0==null) return;
     dy=(e.touches[0].clientY-y0)*0.55;
-    if(dy<=0||window.scrollY>0){ y0=null; reset(); return; }
+    if(dy<=0||window.scrollY>0||Math.abs(e.touches[0].clientX-x0)>Math.abs(e.touches[0].clientY-y0)){ y0=null; reset(); return; }
     if(e.cancelable) e.preventDefault();
     show(dy);
   },{passive:false});
@@ -1175,7 +1676,7 @@ document.addEventListener("submit",async e=>{
 })();
 
 // ================= BOOT =================
-state=loadLocal()||examples(); prevSig=sigOf(state); ai=makeAI(); render();
+state=loadLocal()||normalize(examples()); prevSig=sigOf(state); ai=makeAI(); render();
 if(!cfg.toured) openTour(0);
 loadKey().then(()=>{ if(navigator.onLine) startFirebase(); else setSync("local"); });
 if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }

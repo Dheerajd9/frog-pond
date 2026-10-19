@@ -16,15 +16,16 @@ Frog Pond turns the book's 21 rules into a daily habit: pick your hardest, most 
 2. [What it does](#2-what-it-does)
 3. [How each rule in the book maps to the app](#3-how-each-rule-in-the-book-maps-to-the-app)
 4. [How I built it: the project journey](#4-how-i-built-it-the-project-journey)
-5. [Architecture](#5-architecture)
-6. [How it works inside](#6-how-it-works-inside)
-7. [Privacy and security](#7-privacy-and-security)
-8. [Cost: why it is free](#8-cost-why-it-is-free)
-9. [Set it up yourself](#9-set-it-up-yourself)
-10. [How to use it every day](#10-how-to-use-it-every-day)
-11. [Testing](#11-testing)
-12. [Files in this repo](#12-files-in-this-repo)
-13. [Limitations and roadmap](#13-limitations-and-roadmap)
+5. [UI design system (Frog Pond 2.0)](#5-ui-design-system-frog-pond-20)
+6. [Architecture](#6-architecture)
+7. [How it works inside](#7-how-it-works-inside)
+8. [Privacy and security](#8-privacy-and-security)
+9. [Cost: why it is free](#9-cost-why-it-is-free)
+10. [Set it up yourself](#10-set-it-up-yourself)
+11. [How to use it every day](#11-how-to-use-it-every-day)
+12. [Testing](#12-testing)
+13. [Files in this repo](#13-files-in-this-repo)
+14. [Limitations and roadmap](#14-limitations-and-roadmap)
 
 ---
 
@@ -42,7 +43,8 @@ After reading *Eat That Frog!* I saw that the whole book comes down to a few hab
 
 | Area | What you get |
 |---|---|
-| **Easy mode** | A yellow **Do this now** card that always shows the single next step (add jobs → give letters → eat the frog → next job → plan tomorrow), a letter picker that explains A–E, a 6-step **plan-tomorrow wizard**, a welcome tour on first open (replay from Me → Settings) and a "How to use" box on every tab |
+| **Guide card (2.0)** | One big card at the top of Today always shows the single next step and one button: add jobs → give letters → eat the frog (Start focus / I ate my frog) → next job → after 9 pm, plan tomorrow. Plus a letter picker that explains A–E, a 6-step plan-tomorrow wizard, a 4-screen welcome tour (replay in Me → Settings), an in-app daily guide with examples and a "How to use" box on every tab |
+| **Gestures (2.0)** | Tap a job to edit it (name, priority, order, slices, deadline, need-ready, move, delete). Swipe right = done, swipe left = actions, long-press = actions, right-click on desktop = actions. Undo after delete. Every gesture also has a visible button |
 | **Today** | Your frog card (the A-1 task) with "Start eating" and "I ate my frog!", today's list with A/B/C/D/E letters, the 21-day habit tracker, daily habits, an evening "plan tomorrow" checklist and a "feeling stuck?" question box |
 | **Lists** | Big list → Month → Week → Today, plus a "Not doing" list for creative procrastination. Tasks move down the chain with one tap |
 | **Goals** | Up to 10 goals written as if already true, one starred major goal with a finish date, ordered steps, a "next oil barrel" marker and a "what is holding me back?" field |
@@ -110,9 +112,34 @@ I built it in one long session with an AI assistant (Claude), as a series of ste
 
 **Step 9: Easy mode.** After real use showed it was confusing for a first-timer, guidance was added without removing anything: the "Do this now" card, the letter picker, the plan-tomorrow wizard, the welcome tour and per-tab help.
 
-**Step 10: Set up and test on real devices.** The Firebase project was created and configured (sign-in methods, authorized domain, Firestore rules, web app config), the app was added to the iPhone home screen, and sync was turned on.
+**Step 10: Frog Pond 2.0 redesign.** A full UI/UX modernization inspired by native iOS apps, Things 3 and Linear, without removing any feature or touching the business logic: a token-based design system, the system font with rounded titles, a guide-card Today screen, bottom sheets, gestures, a full-screen focus mode with a ring timer and pause, a short celebration, a left navigation rail and a 2-column Today on desktop, real dark mode, empty and error states, and keyboard and screen-reader support. Testing it also uncovered and fixed three bugs: squashed sections inside tall sheets, a crash when deleting on a brand-new device, and sections closing by themselves after a change.
 
-## 5. Architecture
+**Step 11: Set up and test on real devices.** The Firebase project was created and configured (sign-in methods, authorized domain, Firestore rules, web app config), the app was added to the iPhone home screen, and sync was turned on.
+
+## 5. UI design system (Frog Pond 2.0)
+
+Keep new UI consistent with these rules. Everything lives in the `<style>` block of `index.html` as tokens on `:root`.
+
+**Principles:** one obvious next action per screen (the guide card); progressive disclosure (primary = the hero card, secondary = the next job and the list, tertiary = habits, streak, planning, help in folded sections); calm neutral surfaces with the frog-green accent only for primary actions, progress, success and the active tab.
+
+| Token group | Values |
+|---|---|
+| Spacing | `--s-1`…`--s-16` = 4, 8, 12, 16, 20, 24, 32, 48, 64 px |
+| Radius | `--r-sm` 10 · `--r-md` 14 · `--r-lg` 20 · `--r-xl` 28 · `--r-pill` |
+| Type | system font (SF Pro on Apple) for text; `ui-rounded` (SF Pro Rounded, falling back to Nunito) for titles; sizes via `clamp()`; inputs are 16px so iOS never zooms |
+| Color roles | `--bg --surface --surface-2/3 --text --text-2/3 --border --accent --accent-soft --warn --danger --info`, priority pairs `--pA…--pE` + `-soft`; full separate dark palette |
+| Motion | `--d-micro` 150ms · `--d-ui` 200ms · `--d-screen` 280ms · `--d-sheet` 320ms; `--ease` (out) and `--ease-spring`; transform/opacity only; everything respects `prefers-reduced-motion` |
+| Layers | `--z-nav` < `--z-ptr` < `--z-focus` < `--z-sheet` < `--z-toast` |
+
+**Components:** `.btn` + `.btn-primary / -secondary / -soft / -ghost / -plain / -danger` (+ `-lg`, `-sm`, `-block`; press = scale .97, `aria-busy` blocks double taps) · `.card`, `.hero`, `.goal-hero`, `.rule-hero` · `.task` rows (44px check, title + meta, `.prio` badge showing the letter, not just a color) · `.chip`, `.sync` status chip with a colored dot · `.progress` · `details.disc` (folded sections that remember open/closed) · `.seg` segmented control · `.group` + `.cell` settings rows · `.empty` and `.alert` states · `.toast` (with an optional Undo).
+
+**Sheets:** `openSheet(kind, opts)` builds a bottom sheet on phones and a centered dialog on screens ≥700px; it dims the background, locks scroll, traps focus, closes on Escape, the scrim or ✕, and returns focus to the button that opened it. Sheet content re-renders from state after every change (`refreshSheet`). Kinds: `task`, `letter`, `wiz`, `tour`, `guide`, `prep`.
+
+**Focus mode:** a full-screen layer above the navigation with a ring timer, Pause/Resume, "I got distracted", "Finished it!" and "End session".
+
+**Layout:** phone = one column + bottom tab bar (safe areas respected); tablet = wider column; desktop ≥1024px = left navigation rail and a 2-column Today (main work left, habits/streak/planning right, sticky).
+
+## 6. Architecture
 
 ```mermaid
 flowchart LR
@@ -144,9 +171,9 @@ flowchart LR
 - **AI:** direct browser call to the Gemini `generateContent` endpoint with the user's own key.
 - **Automation:** GitHub Actions scheduled workflow to the Telegram Bot API.
 
-## 6. How it works inside
+## 7. How it works inside
 
-### 6.1 Data model
+### 7.1 Data model
 
 The whole plan is one JSON object:
 
@@ -175,11 +202,11 @@ The whole plan is one JSON object:
 - `u` is the time an item last changed; `tomb` remembers deleted items. Both exist for sync.
 - Finished tasks older than 45 days and daily habit/plan entries older than 120 days are pruned, so the record stays small.
 
-### 6.2 Saving and offline
+### 7.2 Saving and offline
 
 Every change saves to `localStorage` on the device right away. That copy is what the app shows, so it opens instantly and works on a plane. The service worker caches the app files (network first, cache when offline). Firebase and Gemini calls skip the cache and go straight to the network.
 
-### 6.3 Sync and merge
+### 7.3 Sync and merge
 
 When you are signed in, the app listens to one Firestore document: `users/{uid}/data/main`.
 
@@ -194,22 +221,22 @@ When you are signed in, the app listens to one Firestore document: `users/{uid}/
 
 Example: offline, you edit task A and delete task B on the iPhone, and you add task D on the Mac. After both sync, all three changes are kept.
 
-### 6.4 Optional extra lock (end-to-end encryption)
+### 7.4 Optional extra lock (end-to-end encryption)
 
 - You choose a passphrase (8+ characters). A 256-bit AES-GCM key is made from it with PBKDF2 (SHA-256, 250,000 rounds, random 16-byte salt).
 - The plan is encrypted on the device with a fresh 12-byte IV on every upload. Firestore only ever stores `{ enc: true, salt, iv, data }`, which is unreadable without the passphrase.
 - Each device asks for the passphrase once and keeps the derived key locally. The passphrase itself is never stored or uploaded.
 - If the passphrase is forgotten, the synced copy cannot be decrypted. Each device still has its own local copy.
 
-### 6.5 AI helper
+### 7.5 AI helper
 
 With a free Gemini key saved in Me → Settings, the app sends a short prompt such as "break this task into 3–6 tiny steps…" to `generativelanguage.googleapis.com` with `responseMimeType: application/json` and adds the returned steps to the task or goal. The key is stored only in that device's localStorage, never in the repo and never in sync.
 
-### 6.6 Reminders
+### 7.6 Reminders
 
 `.github/workflows/reminders.yml` runs at `0 11 * * *` and `0 1 * * *` UTC: 7 am and 9 pm New York time in summer, one hour earlier in winter. It posts a message to the Telegram Bot API using the repo secrets `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`, and skips quietly if they are not set. It can also be run by hand from the Actions tab.
 
-## 7. Privacy and security
+## 8. Privacy and security
 
 - **Firestore rules:** only the signed-in owner can read or write their own single document, and only the fields the app uses are accepted:
   ```
@@ -251,7 +278,7 @@ With a free Gemini key saved in Me → Settings, the app sends a short prompt su
 | Third-party script integrity | Firebase SDK loaded from Google's versioned CDN (pinned 10.14.1) |
 
 
-## 8. Cost: why it is free
+## 9. Cost: why it is free
 
 | Piece | Free tier used |
 |---|---|
@@ -264,7 +291,7 @@ With a free Gemini key saved in Me → Settings, the app sends a short prompt su
 
 No credit card is needed anywhere. Keep Firebase on **Spark (no-cost)**; never upgrade to Blaze for this app.
 
-## 9. Set it up yourself
+## 10. Set it up yourself
 
 1. **Fork or copy this repo** and keep it public.
 2. **Turn on GitHub Pages:** Settings → Pages → Branch `main`, folder `/ (root)` → Save. Your link is `https://<username>.github.io/<repo>/`.
@@ -283,7 +310,7 @@ Open the link in **Safari** → tap the menu in the address bar → **Share** �
 
 Open the link in any browser and bookmark it. Sign in with the same email and password.
 
-## 10. How to use it every day
+## 11. How to use it every day
 
 **Morning**
 1. Read the rule of the day (21 Rules tab).
@@ -313,9 +340,11 @@ Open the link in any browser and bookmark it. Sign in with the same email and pa
 - Sunday night, Today list: Fix resume (**A-1, the frog**), Apply to 5 jobs (A-2), Reply to emails (B), Grocery shopping (C), Watch YouTube news (E → Not doing). Have ready: laptop, old resume, 3 job posts.
 - Monday 7 am: Start eating → 90 min → resume done → I ate my frog! → apply to 5 jobs → emails → grocery in the evening.
 
-## 11. Testing
+## 12. Testing
 
-Checks run during development (headless Chromium at iPhone size):
+**Frog Pond 2.0 regression suite: 65 of 65 passing** (headless Chromium, iPhone 13 profile with real touch events): onboarding, add, rename, priority picker, A-1 order, slices, deadline and need-ready, AI-without-key message, move between lists, Not doing, delete + undo, completion animation, tadpole warning, undo completion, get-ready sheet, focus ring, pause, resume, distracted, finish from focus, celebration (auto-closes), hero switching to the next job, 21-day tracker, frog undo, habits, the wizard (add, letters, finish), goals (add, major, steps, next oil barrel, move to Today, reorder, deadline + blocker), key result areas (add, score, weakest, remove), daily guide, Escape, backup download + restore, rules (expand, jump), swipe right, swipe left, long-press, pull-to-refresh, data surviving reload, keyboard open and focus trap. Plus: merge unit tests, input cleaning, a hostile-backup XSS test (nothing runs), reduced motion (instant, no animation delay), and screenshots of every screen in light/dark on phone and desktop.
+
+Earlier checks:
 - crafted ids and HTML in a backup file are cleaned before display,
 - undoing "I ate my frog" stays undone after a two-device merge,
 - a new device's example items are not pushed into an existing synced plan,
@@ -329,11 +358,11 @@ Checks run during development (headless Chromium at iPhone size):
 
 Real-device check: installed on the iPhone home screen, signed in, and synced with the MacBook.
 
-## 12. Files in this repo
+## 13. Files in this repo
 
 | File | Purpose |
 |---|---|
-| `index.html` | The whole app: layout, styles, book content, logic, sync, encryption, AI |
+| `index.html` | The whole app: design tokens and styles, book content, views, sheets, gestures, logic, sync, encryption, AI |
 | `sw.js` | Service worker: offline cache for the app's own files |
 | `manifest.json` | PWA manifest: name, colors, icons, standalone mode |
 | `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` | App icons |
@@ -341,7 +370,7 @@ Real-device check: installed on the iPhone home screen, signed in, and synced wi
 | `.github/workflows/reminders.yml` | Morning and evening Telegram reminders |
 | `README.md` | This document |
 
-## 13. Limitations and roadmap
+## 14. Limitations and roadmap
 
 **Known limits**
 - iPhone home-screen apps can't run in the background, so reminders come from Telegram, not app notifications.
