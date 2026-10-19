@@ -211,6 +211,11 @@ nav.tabs button[aria-selected="true"]{color:var(--lily)}
 .dots i.on{background:var(--lily);width:22px;border-radius:99px}
 details.help{background:var(--lily-soft);border:none}
 details.help summary{font-size:1rem}
+.guide h3{margin-top:6px}
+.guide p,.guide li{font-size:.92rem}
+.guide ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.guide .ex{background:var(--lily-soft);border-radius:12px;padding:10px 12px;font-size:.88rem}
+.guide .ex b{color:var(--lily)}
 .toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;z-index:30;max-width:90vw;text-align:center}
 html,body{margin:0}
 :root{padding-top:env(safe-area-inset-top,0px)}
@@ -464,6 +469,56 @@ function renderWiz(){
   if(n===1){ const i=document.getElementById("wiz-in"); if(i&&ui.wizFocus){ i.focus(); ui.wizFocus=false; } }
 }
 
+// ================= USER GUIDE (Me → Settings) =================
+const GUIDE=[
+ ["The idea in one line","Every day, find your most important, hardest job (your frog). Do it first, before anything else. Everything in the app helps with that.",[]],
+ ["Morning: eat the frog",
+  "Open the app. The yellow box says <b>Eat your frog</b>. Tap <b>Start eating</b>, tick the get-ready boxes, pick a time, and work only on that job. When done, tap <b>I ate my frog!</b>",
+  ["<b>Job seeker:</b> frog = \"Fix my resume for MLOps roles\". 90-minute timer, phone face down. Done by 9 am → I ate my frog!",
+   "<b>Student:</b> frog = \"Study chapter 4 for Friday's exam\". Feeling lazy? Pick 10 minutes. Usually you keep going.",
+   "<b>At home:</b> frog = \"Pay the rent and file the insurance form\". 30 minutes, then the rest of the day feels light."]],
+ ["During the day: add, letter, finish",
+  "Something new comes up? Add it to Today first, then tap its letter box. Do A jobs before B, and B before C. Tap the circle when a job is done.",
+  ["Recruiter emails asking for references → add \"Send references\" → <b>A</b> (big result if done).",
+   "Friend asks to watch a game tonight → \"Watch game\" → <b>C</b> (nice, no real result). Only after A and B.",
+   "Car wash, someone else can do it → <b>D</b> (give away). Scrolling reels → <b>E</b> (throw away), or ⋯ → Not doing."]],
+ ["Big scary job? Slice it",
+  "Tap ⋯ on the job → <b>Slice it</b> (or AI: slice it for me). Then do only the first slice.",
+  ["\"Build MLOps project\" → slices: create repo · write data step · add training step · add Docker · write README.",
+   "\"Clean whole room\" → slices: desk only · clothes only · floor only. One slice a day is fine."]],
+ ["After 9 pm: plan tomorrow (10 min)",
+  "The yellow box says <b>Start planning</b>. Follow the 6 steps: clear finished jobs, add tomorrow's jobs, give letters, order the A jobs (top = frog), write what you need ready, sleep.",
+  ["Tomorrow: A-1 \"Apply to 5 jobs\", A-2 \"Practice 2 interview questions\", B \"Reply emails\", C \"Grocery\". Need ready: laptop, job list, coffee.",
+   "Lay the laptop and notes on the desk tonight, so tomorrow you just sit and start."]],
+ ["Weekend: plan the week",
+  "Lists → Week. Move jobs from the Big list or Month into Week. Keep one full day with no work.",
+  ["Week list: finish resume · apply 25 jobs · 1 project slice a day · gym 3 times · call parents Sunday.",
+   "Saturday: plan + one goal step. Sunday: rest day, no work."]],
+ ["End of month: plan the month and check yourself",
+  "Lists → Month: pick what from the Big list happens this month. Me → score your key result areas again. Goals → check dates.",
+  ["Month: get 1 interview · finish Kubernetes course · renew car insurance.",
+   "Key areas: Python 8, Interviews 4 → interviews are the weakest, so next month's frogs focus there."]],
+ ["Goals: once a week",
+  "Write up to 10 goals as if already true. Star the one that matters most, add its steps, and send one step to Today every day.",
+  ["★ \"I work as an MLOps Engineer by January\". Steps: fix resume → build project → apply daily → mock interviews.",
+   "\"What is holding me back?\" → \"I watch YouTube at night\". So tonight's E job: no YouTube after 9 pm."]],
+ ["Phone and laptop",
+  "Sign in with the same email on both (Me tab). Add a job on the phone and it shows on the laptop. Offline is fine; it syncs later.",
+  ["On the train: add jobs on the iPhone. At home after 9 pm: plan tomorrow on the Mac with a big keyboard."]],
+ ["The 3 rules to remember",
+  "",
+  ["Frog first, every morning. Nothing before it.",
+   "Every job gets a letter. Never do a B while an A is waiting.",
+   "Plan tomorrow after 9 pm. 21 days in a row and it becomes a habit."]]
+];
+function openGuide(){
+  layer.innerHTML=`<div class="overlay" data-close="1"><div class="box guide" role="dialog" aria-label="How to use Frog Pond">
+    <h2>How to use Frog Pond every day</h2>
+    ${GUIDE.map(([h,p,ex])=>`<h3>${h}</h3>${p?`<p>${p}</p>`:""}${ex.length?`<div class="ex"><b>Examples</b><ul>${ex.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:""}`).join("")}
+    <button class="btn primary" data-close="1">Got it</button></div></div>`;
+  const bx=layer.querySelector(".box"); if(bx) bx.scrollTop=0;
+}
+
 // ================= RENDER: shared rows =================
 function taskRow(t){
   const open=ui.open===t.id; const sl=t.slices||[]; const slDone=sl.filter(s=>s.done).length;
@@ -593,7 +648,7 @@ function viewToday(){
     </ul>
     <div class="row"><button class="btn sun" data-act="focus" data-id="${f?f.id:""}">Do it now: start a timer</button></div>
   </details>
-  ${help("How to use Today",["Look at the yellow <b>Do this now</b> box. It always shows your next step.","Morning: tap <b>Start eating</b> and do your frog first. Then tap <b>I ate my frog!</b>","New job? Type it in Today's list, then tap the letter box to choose A, B, C, D or E.","Tap the circle when a job is done. Tap ⋯ for more: slice it, deadline, move it, delete.","After 9 pm: the yellow box shows <b>Start planning</b>. Follow the 6 steps."])}
+  ${help("How to use Today",["Look at the yellow <b>Do this now</b> box. It always shows your next step.","Morning: tap <b>Start eating</b> and do your frog first. Then tap <b>I ate my frog!</b>","New job? Type it in Today's list, then tap the letter box to choose A, B, C, D or E.","Tap the circle when a job is done. Tap ⋯ for more: slice it, deadline, move it, delete.","After 9 pm: the yellow box shows <b>Start planning</b>. Follow the 6 steps.","Want real-life examples? <button class=\"btn tiny\" data-act=\"guide\">Open the daily guide</button>"])}
   ${hasEx?`<div class="row"><button class="btn ghost tiny" data-act="clearex">Remove the example jobs and goals</button><span class="small muted">Items marked "example" only show how it works.</span></div>`:""}
   `;
 }
@@ -698,7 +753,7 @@ function viewMe(){
     <label class="f">Model (leave as is)<input class="in" id="gmodel" value="${esc(cfg.model)}" spellcheck="false"></label>
     <div class="row"><button class="btn primary" data-act="savekey">Save key</button><button class="btn" data-act="testkey">Test it</button>${cfg.key?'<button class="btn ghost tiny" data-act="delkey">Remove key</button>':""}<span class="small muted">${ai?"AI is on":"AI is off"}</span></div>
     <h3>Help</h3>
-    <div class="row"><button class="btn" data-act="tour">Show the welcome tour again</button></div>
+    <div class="row"><button class="btn primary" data-act="guide">📖 Daily guide with examples</button><button class="btn" data-act="tour">Show the welcome tour again</button></div>
     <h3>Use it on phone and laptop</h3>
     <p class="small muted">Your plan saves on this device only, so it is free and private. To move it: tap "Save backup file", send the file to your other device (AirDrop, email or iCloud Drive), open the app there and tap "Load backup file".</p>
     <div class="row"><button class="btn" data-act="export">Save backup file</button><label class="btn" for="importf" style="display:inline-flex;align-items:center;cursor:pointer">Load backup file</label><input type="file" id="importf" accept="application/json,.json" hidden></div>
@@ -847,6 +902,7 @@ document.addEventListener("click",e=>{
     case "wizclose": closeLayer(); return;
     case "wizfinish": { const p=state.plan[dkey()]||(state.plan[dkey()]={}); PLAN_STEPS.forEach(([k])=>p[k]=true); todayHabits().plan=true; closeLayer(); commit(); toast("Plan ready. Sleep well! 🐸"); return; }
     case "tour": openTour(0); return;
+    case "guide": openGuide(); return;
     case "focusadd": { ui.tab="today"; render(); const i=document.getElementById("add-day"); if(i){ i.scrollIntoView({block:"center"}); i.focus(); } return; }
     case "open": ui.open=ui.open===b.dataset.id?null:b.dataset.id; ui.panel=null; render(); return;
     case "panel": ui.panel=ui.panel===b.dataset.p?null:b.dataset.p; render(); { const el=document.getElementById(ui.panel==="slice"?"slice-in":"due-in"); if(el) el.focus(); } return;
