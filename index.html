@@ -218,6 +218,12 @@ details.help summary{font-size:1rem}
 .guide .ex b{color:var(--lily)}
 .acct{border:none;background:transparent;padding:2px 0;margin-top:2px;font-size:.8rem;font-weight:700;color:var(--lily);text-align:left;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
 .acct.off{color:var(--muted)}
+html,body{overscroll-behavior-y:contain}
+#ptr{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) - 56px);transform:translate(-50%,0);z-index:25;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:6px 14px 6px 8px;display:flex;align-items:center;gap:8px;font-weight:800;font-size:.85rem;box-shadow:0 4px 14px rgba(0,0,0,.15);pointer-events:none;transition:opacity .2s;opacity:0}
+#ptr svg{width:30px;height:30px}
+#ptr.spin svg{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){#ptr.spin svg{animation:none}}
 .toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;z-index:30;max-width:90vw;text-align:center}
 html,body{margin:0}
 :root{padding-top:env(safe-area-inset-top,0px)}
@@ -248,6 +254,7 @@ html,body{margin:0}
 
 <div class="wrap" id="app"></div>
 <div id="layer"></div>
+<div id="ptr" aria-hidden="true"><svg><use href="#frog"/></svg><span id="ptr-t">Pull to refresh</span></div>
 
 <nav class="tabs" aria-label="Sections"><div class="in">
   <button data-tab="today" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M8 7.5a2.2 2.2 0 1 1 3-2M16 7.5a2.2 2.2 0 1 0-3-2M9 15c1.6 1.4 4.4 1.4 6 0"/></svg>Today</button>
@@ -509,6 +516,7 @@ const GUIDE=[
   "Write up to 10 goals as if already true. Star the one that matters most, add its steps, and send one step to Today every day.",
   ["★ \"I work as an MLOps Engineer by January\". Steps: fix resume → build project → apply daily → mock interviews.",
    "\"What is holding me back?\" → \"I watch YouTube at night\". So tonight's E job: no YouTube after 9 pm."]],
+ ["Refresh","Pull down from the very top of the screen until the frog says <b>Let go to refresh</b>. The app syncs and loads any new version. On a Mac press Cmd+R.",[]],
  ["Phone and laptop",
   "Sign in with the same email on both (Me tab). Add a job on the phone and it shows on the laptop. Offline is fine; it syncs later.",
   ["On the train: add jobs on the iPhone. At home after 9 pm: plan tomorrow on the Mac with a big keyboard."]],
@@ -1137,6 +1145,34 @@ document.addEventListener("submit",async e=>{
     try{ const k=await deriveKey(pass,lastDoc.salt); await decryptDoc(lastDoc,k); cryptoKey=k; await saveKey(); locked=null; authMsg=""; toast("Unlocked."); handleRemote({exists:true,metadata:{hasPendingWrites:false},data:()=>lastDoc}); }
     catch(err){ authMsg="Wrong passphrase. Try again."; render(); } }
 });
+
+// ================= PULL TO REFRESH =================
+// Pull down at the very top: syncs and reloads the app (which also picks up new versions).
+(function(){
+  const el=document.getElementById("ptr"), txt=document.getElementById("ptr-t"), MAX=110, GO=70;
+  let y0=null, dy=0, busy=false;
+  const show=d=>{ const k=Math.min(d,MAX); el.style.opacity=k>8?1:0; el.style.transform=`translate(-50%,${k+56}px)`; el.querySelector("svg").style.transform=busy?"":`rotate(${k*3}deg)`; txt.textContent=busy?"Refreshing…":k>=GO?"Let go to refresh":"Pull to refresh"; };
+  const reset=()=>{ el.style.transition="transform .25s, opacity .2s"; el.style.opacity=0; el.style.transform="translate(-50%,0)"; setTimeout(()=>el.style.transition="opacity .2s",260); };
+  document.addEventListener("touchstart",e=>{
+    if(busy||window.scrollY>0||layer.innerHTML||e.touches.length!==1||e.target.closest("input,textarea,select,.seg")){ y0=null; return; }
+    y0=e.touches[0].clientY; dy=0;
+  },{passive:true});
+  document.addEventListener("touchmove",e=>{
+    if(y0==null) return;
+    dy=(e.touches[0].clientY-y0)*0.55;
+    if(dy<=0||window.scrollY>0){ y0=null; reset(); return; }
+    if(e.cancelable) e.preventDefault();
+    show(dy);
+  },{passive:false});
+  document.addEventListener("touchend",async()=>{
+    if(y0==null) return; y0=null;
+    if(dy<GO){ reset(); return; }
+    busy=true; el.classList.add("spin"); show(GO);
+    try{ saveLocal(); if(typeof fbUser!=="undefined"&&fbUser&&!locked){ clearTimeout(pushTimer); await Promise.race([pushNow(),new Promise(r=>setTimeout(r,2500))]); } }catch(x){}
+    try{ const reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration(); if(reg) await Promise.race([reg.update(),new Promise(r=>setTimeout(r,1500))]); }catch(x){}
+    location.reload();
+  });
+})();
 
 // ================= BOOT =================
 state=loadLocal()||examples(); prevSig=sigOf(state); ai=makeAI(); render();
