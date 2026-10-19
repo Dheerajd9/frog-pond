@@ -216,6 +216,8 @@ details.help summary{font-size:1rem}
 .guide ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
 .guide .ex{background:var(--lily-soft);border-radius:12px;padding:10px 12px;font-size:.88rem}
 .guide .ex b{color:var(--lily)}
+.acct{border:none;background:transparent;padding:2px 0;margin-top:2px;font-size:.8rem;font-weight:700;color:var(--lily);text-align:left;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.acct.off{color:var(--muted)}
 .toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;z-index:30;max-width:90vw;text-align:center}
 html,body{margin:0}
 :root{padding-top:env(safe-area-inset-top,0px)}
@@ -469,6 +471,11 @@ function renderWiz(){
   if(n===1){ const i=document.getElementById("wiz-in"); if(i&&ui.wizFocus){ i.focus(); ui.wizFocus=false; } }
 }
 
+function accountLine(){
+  if(typeof fbUser==="undefined") return "";
+  return fbUser?`<button class="acct" data-act="gosync" title="Account">👤 ${esc(fbUser.email||"Google account")}</button>`
+               :`<button class="acct off" data-act="gosync">👤 Not signed in · tap to sign in</button>`;
+}
 // ================= USER GUIDE (Me → Settings) =================
 const GUIDE=[
  ["The idea in one line","Every day, find your most important, hardest job (your frog). Do it first, before anything else. Everything in the app helps with that.",[]],
@@ -596,7 +603,7 @@ function viewToday(){
 
   const days21=Math.min(st,21);
   return `
-  <header class="top"><div class="who"><h1>Frog Pond</h1><p class="small muted">${d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})}</p></div>
+  <header class="top"><div class="who"><h1>Frog Pond</h1><p class="small muted">${d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})}</p>${accountLine()}</div>
     <button class="talk" data-act="talk" aria-label="Say it to yourself, tap for another">${TALK[ui.talk%TALK.length]}</button><button id="sync" class="sync" data-act="gosync" style="border:none"></button></header>
   ${banner}
   ${nextCard()}
@@ -752,6 +759,10 @@ function viewMe(){
     <label class="f">Gemini API key<input class="in" type="password" id="gkey" value="${esc(cfg.key)}" autocomplete="off" spellcheck="false" placeholder="Paste your key"></label>
     <label class="f">Model (leave as is)<input class="in" id="gmodel" value="${esc(cfg.model)}" spellcheck="false"></label>
     <div class="row"><button class="btn primary" data-act="savekey">Save key</button><button class="btn" data-act="testkey">Test it</button>${cfg.key?'<button class="btn ghost tiny" data-act="delkey">Remove key</button>':""}<span class="small muted">${ai?"AI is on":"AI is off"}</span></div>
+    <h3>Account</h3>
+    ${typeof fbUser!=="undefined"&&fbUser?`<p class="small">👤 Signed in as <b>${esc(fbUser.email||"Google account")}</b>${fbUser.providerData&&fbUser.providerData[0]&&fbUser.providerData[0].providerId==="google.com"?" (Google)":" (email + password)"}</p>
+      <div class="row"><button class="btn ghost tiny" data-act="signout">Sign out</button><button class="btn ghost tiny" data-act="gosync">Sync settings</button></div>`
+      :`<p class="small muted">Not signed in. Your plan is saved on this device only.</p><div class="row"><button class="btn tiny" data-act="gosync">Sign in to sync</button></div>`}
     <h3>Help</h3>
     <div class="row"><button class="btn primary" data-act="guide">📖 Daily guide with examples</button><button class="btn" data-act="tour">Show the welcome tour again</button></div>
     <h3>Use it on phone and laptop</h3>
