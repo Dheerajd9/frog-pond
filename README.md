@@ -299,7 +299,7 @@ Open the link in any browser and bookmark it. Sign in with the same email and pa
 - Not worth doing? ⋯ → Not doing.
 - Tick the daily habits.
 
-**Night (10 minutes)**
+**Night, after 9 pm (10 minutes)**
 1. Today → "Tonight: plan tomorrow" → Clear finished jobs.
 2. Add tomorrow's tasks, give each a letter, put the A tasks in order. A-1 is tomorrow's frog.
 3. Write what the frog needs, lay it out, clear the desk, sleep early.

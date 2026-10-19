@@ -403,14 +403,14 @@ function nextStep(){
   const open=state.tasks.filter(t=>t.list==="day"&&!t.done);
   const noLetter=open.filter(t=>!t.letter);
   const f=a1(); const planDone=!!(todayHabits().plan);
-  if(hour>=18&&!planDone) return {k:"Evening",what:"Plan tomorrow. It takes 10 minutes.",btn:"Start planning",act:"wizard"};
+  if(hour>=21&&!planDone) return {k:"9 pm: planning time",what:"Plan tomorrow. It takes 10 minutes.",btn:"Start planning",act:"wizard"};
   if(!open.length&&!eaten) return {k:"Start here",what:"Write down what you need to do today.",btn:"Add a job",act:"focusadd"};
   if(noLetter.length) return {k:"Next",what:`Give a letter to “${noLetter[0].text}”. Is it a must-do (A) or not?`,btn:"Choose letter",act:"letter",id:noLetter[0].id};
   if(!f&&!eaten) return {k:"Next",what:"Pick your frog: give your most important job the letter A.",btn:"Choose a job",act:"letter",id:open[0].id};
   if(f&&!eaten) return {k:"Do this now",what:`Eat your frog: “${f.text}”. Nothing else first.`,btn:"Start eating",act:"focus",id:f.id};
   const nx=open.filter(t=>t.letter!=="E"&&t.letter!=="D").sort((a,b)=>(order[a.letter]-order[b.letter])||(a.rank-b.rank))[0];
   if(nx) return {k:"Next job",what:`Frog eaten 🎉 Next: “${nx.text}”.`,btn:"Start timer",act:"focus",id:nx.id};
-  return {k:"All done",what:"Today's list is done. Rest, or plan tomorrow tonight.",btn:"Plan tomorrow",act:"wizard"};
+  return hour>=21?{k:"All done",what:"Today's list is done. Now plan tomorrow.",btn:"Start planning",act:"wizard"}:{k:"All done",what:"Today's list is done 🎉 Planning for tomorrow opens at 9 pm.",btn:"Add another job",act:"focusadd"};
 }
 function nextCard(){ const n=nextStep(); return `<section class="next" aria-live="polite"><span class="k">${n.k}</span><div class="what">${esc(n.what)}</div><button class="btn primary" data-act="${n.act}" ${n.id?`data-id="${n.id}"`:""}>${n.btn}</button></section>`; }
 
@@ -429,7 +429,7 @@ const TOUR=[
   ["1. Write your jobs","Put every job on a list. Today's jobs go on the <b>Today</b> tab. Bigger plans go on <b>Lists</b> (week, month, some day)."],
   ["2. Give each job a letter","<b>A</b> must do · <b>B</b> should do · <b>C</b> nice to do · <b>D</b> give away · <b>E</b> throw away. Your top A job (<b>A-1</b>) is your frog."],
   ["3. Eat the frog first","Each morning tap <b>Start eating</b>, work only on the frog, then tap <b>I ate my frog!</b> Do it 21 days in a row and it becomes a habit."],
-  ["4. Plan tomorrow tonight","Each evening the app walks you through planning tomorrow in 10 minutes."],
+  ["4. Plan tomorrow at 9 pm","Every night after 9 pm the yellow box asks you to plan tomorrow. The app walks you through it in 10 minutes."],
   ["Not sure what to do?","Look at the <b>yellow \"Do this now\" box</b> at the top of Today. It always shows your next step. Turn on sync in the <b>Me</b> tab to use it on all your devices."]
 ];
 function openTour(n){
@@ -573,8 +573,8 @@ function viewToday(){
     </div>
   </section>
 
-  <details class="card" ${hour>=17?"open":""}>
-    <summary>Tonight: plan tomorrow</summary>
+  <details class="card" ${hour>=21?"open":""}>
+    <summary>Tonight after 9 pm: plan tomorrow</summary>
     <div class="row"><button class="btn primary" data-act="wizard">Plan step by step (easy)</button></div>
     <p class="small muted">Do this at the end of each day. 10 minutes of planning saves about 2 hours tomorrow. <span class="src">Rules 2, 8, 17</span></p>
     <div class="habits">${PLAN_STEPS.map(([k,label,act],i)=>{const done=(state.plan[today]||{})[k];return `<div class="habit"><button class="check ${done?"on":""}" aria-label="Step ${i+1} done" data-act="planstep" data-k="${k}"></button><span>${i+1}. ${label}${act==="clear"?` <button class="btn tiny" data-act="clearDone">Clear finished jobs</button>`:""}</span></div>`}).join("")}</div>
@@ -593,7 +593,7 @@ function viewToday(){
     </ul>
     <div class="row"><button class="btn sun" data-act="focus" data-id="${f?f.id:""}">Do it now: start a timer</button></div>
   </details>
-  ${help("How to use Today",["Look at the yellow <b>Do this now</b> box. It always shows your next step.","Morning: tap <b>Start eating</b> and do your frog first. Then tap <b>I ate my frog!</b>","New job? Type it in Today's list, then tap the letter box to choose A, B, C, D or E.","Tap the circle when a job is done. Tap ⋯ for more: slice it, deadline, move it, delete.","Evening: tap <b>Start planning</b> and follow the 6 steps."])}
+  ${help("How to use Today",["Look at the yellow <b>Do this now</b> box. It always shows your next step.","Morning: tap <b>Start eating</b> and do your frog first. Then tap <b>I ate my frog!</b>","New job? Type it in Today's list, then tap the letter box to choose A, B, C, D or E.","Tap the circle when a job is done. Tap ⋯ for more: slice it, deadline, move it, delete.","After 9 pm: the yellow box shows <b>Start planning</b>. Follow the 6 steps."])}
   ${hasEx?`<div class="row"><button class="btn ghost tiny" data-act="clearex">Remove the example jobs and goals</button><span class="small muted">Items marked "example" only show how it works.</span></div>`:""}
   `;
 }
