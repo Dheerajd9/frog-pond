@@ -191,10 +191,10 @@ nav.tabs button[aria-selected="true"]{color:var(--lily)}
 @keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
 @keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
 @media (prefers-reduced-motion:reduce){.overlay .box,.overlay .frogsvg{animation:none}}
-.next{background:var(--surface);border:3px solid var(--sun);border-radius:22px;padding:16px;display:flex;flex-direction:column;gap:10px}
-.next .k{font-family:var(--display);font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:.75rem;color:var(--b)}
-.next .what{font-family:var(--display);font-size:1.35rem;font-weight:800;line-height:1.2;overflow-wrap:anywhere}
-.next .btn{font-size:1.05rem;min-height:52px}
+.nextcard{background:var(--surface);border:3px solid var(--sun);border-radius:22px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.nextcard .k{font-family:var(--display);font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:.75rem;color:var(--b)}
+.nextcard .what{font-family:var(--display);font-size:1.35rem;font-weight:800;line-height:1.2;overflow-wrap:anywhere}
+.nextcard .btn{font-size:1.05rem;min-height:52px}
 .lpick{display:flex;flex-direction:column;gap:8px}
 .lpick button{display:grid;grid-template-columns:48px 1fr;gap:12px;align-items:center;text-align:left;border:2px solid var(--line);background:var(--surface);border-radius:14px;padding:8px 12px}
 .lpick button[aria-pressed="true"]{border-color:var(--fg)}
@@ -426,7 +426,7 @@ function nextStep(){
   if(nx) return {k:"Next job",what:`Frog eaten 🎉 Next: “${nx.text}”.`,btn:"Start timer",act:"focus",id:nx.id};
   return hour>=21?{k:"All done",what:"Today's list is done. Now plan tomorrow.",btn:"Start planning",act:"wizard"}:{k:"All done",what:"Today's list is done 🎉 Planning for tomorrow opens at 9 pm.",btn:"Add another job",act:"focusadd"};
 }
-function nextCard(){ const n=nextStep(); return `<section class="next" aria-live="polite"><span class="k">${n.k}</span><div class="what">${esc(n.what)}</div><button class="btn primary" data-act="${n.act}" ${n.id?`data-id="${n.id}"`:""}>${n.btn}</button></section>`; }
+function nextCard(){ const n=nextStep(); return `<section class="nextcard" aria-live="polite"><span class="k">${n.k}</span><div class="what">${esc(n.what)}</div><button class="btn primary" data-act="${n.act}" ${n.id?`data-id="${n.id}"`:""}>${n.btn}</button></section>`; }
 
 const LMEAN={A:["Must do","Big results if done, big trouble if not. Your frogs."],B:["Should do","Small results. A tadpole. Only after all A jobs."],C:["Nice to do","No real results either way."],D:["Give away","Someone else can do it. Ask them."],E:["Throw away","Not worth doing. Delete it or put it on Not doing."]};
 const LCOL={A:"var(--a)",B:"var(--b)",C:"var(--c)",D:"var(--d)",E:"var(--e)"};
