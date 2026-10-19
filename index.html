@@ -126,7 +126,7 @@ li.t .sub{font-weight:400;font-size:.8rem;color:var(--muted);text-decoration:non
 .habits{display:flex;flex-direction:column;gap:8px}
 .habit{display:flex;gap:12px;align-items:center}
 .habit span{flex:1;min-width:0}
-.habit .check{width:30px;height:30px;border-width:2px}
+.habit .check{width:30px;height:30px;border-width:2px;flex:none}
 
 .seg{display:flex;gap:4px;background:var(--surface2);padding:5px;border-radius:14px;overflow-x:auto}
 .seg button{flex:1;border:none;background:transparent;border-radius:10px;padding:8px 10px;font-weight:800;white-space:nowrap;color:var(--muted)}
@@ -191,6 +191,26 @@ nav.tabs button[aria-selected="true"]{color:var(--lily)}
 @keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
 @keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
 @media (prefers-reduced-motion:reduce){.overlay .box,.overlay .frogsvg{animation:none}}
+.next{background:var(--surface);border:3px solid var(--sun);border-radius:22px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.next .k{font-family:var(--display);font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:.75rem;color:var(--b)}
+.next .what{font-family:var(--display);font-size:1.35rem;font-weight:800;line-height:1.2;overflow-wrap:anywhere}
+.next .btn{font-size:1.05rem;min-height:52px}
+.lpick{display:flex;flex-direction:column;gap:8px}
+.lpick button{display:grid;grid-template-columns:48px 1fr;gap:12px;align-items:center;text-align:left;border:2px solid var(--line);background:var(--surface);border-radius:14px;padding:8px 12px}
+.lpick button[aria-pressed="true"]{border-color:var(--fg)}
+.lpick b.l{font-family:var(--display);font-size:1.5rem;color:#fff;border-radius:10px;text-align:center;line-height:44px;height:44px}
+.lpick span small{display:block;color:var(--muted);font-size:.8rem}
+.minil{display:flex;gap:4px;flex-wrap:wrap}
+.minil button{width:36px;height:36px;border-radius:9px;border:2px solid var(--line);background:var(--surface);font-family:var(--display);font-weight:800}
+.minil button[aria-pressed="true"]{color:#fff;border-color:transparent}
+.minil button[data-l="A"][aria-pressed="true"]{background:var(--a)}.minil button[data-l="B"][aria-pressed="true"]{background:var(--b)}.minil button[data-l="C"][aria-pressed="true"]{background:var(--c)}.minil button[data-l="D"][aria-pressed="true"]{background:var(--d)}.minil button[data-l="E"][aria-pressed="true"]{background:var(--e)}
+.wrow{display:flex;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.wrow .wt{font-weight:700;overflow-wrap:anywhere}
+.dots{display:flex;gap:6px;justify-content:center}
+.dots i{width:8px;height:8px;border-radius:50%;background:var(--line);display:block}
+.dots i.on{background:var(--lily);width:22px;border-radius:99px}
+details.help{background:var(--lily-soft);border:none}
+details.help summary{font-size:1rem}
 .toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:700;z-index:30;max-width:90vw;text-align:center}
 html,body{margin:0}
 :root{padding-top:env(safe-area-inset-top,0px)}
@@ -376,6 +396,74 @@ function nextBarrel(g){return g&&g.steps.find(s=>!s.done)}
 function toast(msg){const old=document.querySelector(".toast");if(old)old.remove();const t=document.createElement("div");t.className="toast";t.setAttribute("role","status");t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
 function letterLabel(t){return t.letter==="A"&&!t.done&&t.rank?"A-"+t.rank:(t.letter||"?")}
 
+// ================= EASY MODE: help boxes, "do this now", letter picker, tour, plan wizard =================
+function help(title,items){ return `<details class="card help"><summary>❓ ${title}</summary><ol class="steps">${items.map(x=>`<li>${x}</li>`).join("")}</ol></details>`; }
+function nextStep(){
+  const today=dkey(), hour=new Date().getHours(), eaten=!!state.frogLog[today];
+  const open=state.tasks.filter(t=>t.list==="day"&&!t.done);
+  const noLetter=open.filter(t=>!t.letter);
+  const f=a1(); const planDone=!!(todayHabits().plan);
+  if(hour>=18&&!planDone) return {k:"Evening",what:"Plan tomorrow. It takes 10 minutes.",btn:"Start planning",act:"wizard"};
+  if(!open.length&&!eaten) return {k:"Start here",what:"Write down what you need to do today.",btn:"Add a job",act:"focusadd"};
+  if(noLetter.length) return {k:"Next",what:`Give a letter to “${noLetter[0].text}”. Is it a must-do (A) or not?`,btn:"Choose letter",act:"letter",id:noLetter[0].id};
+  if(!f&&!eaten) return {k:"Next",what:"Pick your frog: give your most important job the letter A.",btn:"Choose a job",act:"letter",id:open[0].id};
+  if(f&&!eaten) return {k:"Do this now",what:`Eat your frog: “${f.text}”. Nothing else first.`,btn:"Start eating",act:"focus",id:f.id};
+  const nx=open.filter(t=>t.letter!=="E"&&t.letter!=="D").sort((a,b)=>(order[a.letter]-order[b.letter])||(a.rank-b.rank))[0];
+  if(nx) return {k:"Next job",what:`Frog eaten 🎉 Next: “${nx.text}”.`,btn:"Start timer",act:"focus",id:nx.id};
+  return {k:"All done",what:"Today's list is done. Rest, or plan tomorrow tonight.",btn:"Plan tomorrow",act:"wizard"};
+}
+function nextCard(){ const n=nextStep(); return `<section class="next" aria-live="polite"><span class="k">${n.k}</span><div class="what">${esc(n.what)}</div><button class="btn primary" data-act="${n.act}" ${n.id?`data-id="${n.id}"`:""}>${n.btn}</button></section>`; }
+
+const LMEAN={A:["Must do","Big results if done, big trouble if not. Your frogs."],B:["Should do","Small results. A tadpole. Only after all A jobs."],C:["Nice to do","No real results either way."],D:["Give away","Someone else can do it. Ask them."],E:["Throw away","Not worth doing. Delete it or put it on Not doing."]};
+const LCOL={A:"var(--a)",B:"var(--b)",C:"var(--c)",D:"var(--d)",E:"var(--e)"};
+function openLetterPicker(id){
+  const t=byId(id); if(!t) return;
+  layer.innerHTML=`<div class="overlay" data-close="1"><div class="box" role="dialog" aria-label="Choose a letter">
+    <h2>What kind of job is it?</h2><p class="small muted overflow">“${esc(t.text)}”</p>
+    <div class="lpick">${["A","B","C","D","E"].map(l=>`<button data-pick="${l}" data-id="${t.id}" aria-pressed="${t.letter===l}"><b class="l" style="background:${LCOL[l]}">${l}</b><span><b>${LMEAN[l][0]}</b><small>${LMEAN[l][1]}</small></span></button>`).join("")}</div>
+    <div class="row"><button class="btn ghost tiny" data-pick="" data-id="${t.id}">No letter</button><button class="btn ghost" data-close="1">Cancel</button></div>
+    <p class="small muted">Not sure? Ask: what happens if I do it, and what happens if I don't? (Rule 4)</p></div></div>`;
+}
+const TOUR=[
+  ["Welcome to Frog Pond 🐸","Your <b>frog</b> is your hardest, most important job: the one you most want to put off. This app helps you do it <b>first, every morning</b>."],
+  ["1. Write your jobs","Put every job on a list. Today's jobs go on the <b>Today</b> tab. Bigger plans go on <b>Lists</b> (week, month, some day)."],
+  ["2. Give each job a letter","<b>A</b> must do · <b>B</b> should do · <b>C</b> nice to do · <b>D</b> give away · <b>E</b> throw away. Your top A job (<b>A-1</b>) is your frog."],
+  ["3. Eat the frog first","Each morning tap <b>Start eating</b>, work only on the frog, then tap <b>I ate my frog!</b> Do it 21 days in a row and it becomes a habit."],
+  ["4. Plan tomorrow tonight","Each evening the app walks you through planning tomorrow in 10 minutes."],
+  ["Not sure what to do?","Look at the <b>yellow \"Do this now\" box</b> at the top of Today. It always shows your next step. Turn on sync in the <b>Me</b> tab to use it on all your devices."]
+];
+function openTour(n){
+  n=Math.max(0,Math.min(TOUR.length-1,n||0)); const last=n===TOUR.length-1;
+  layer.innerHTML=`<div class="overlay"><div class="box center" role="dialog" aria-label="Welcome tour">
+    <svg class="frogsvg" aria-hidden="true"><use href="#frog"/></svg><h2>${TOUR[n][0]}</h2><p>${TOUR[n][1]}</p>
+    <div class="dots">${TOUR.map((_,i)=>`<i class="${i===n?"on":""}"></i>`).join("")}</div>
+    <div class="row" style="justify-content:center">${n?`<button class="btn ghost" data-tour="${n-1}">Back</button>`:`<button class="btn ghost" data-tourdone="1">Skip</button>`}
+    ${last?`<button class="btn primary" data-tourdone="1">Let's start</button>`:`<button class="btn primary" data-tour="${n+1}">Next</button>`}</div></div></div>`;
+}
+const WIZ=["Clear finished jobs","Add tomorrow's jobs","Give each job a letter","Order your A jobs","Get ready","All set"];
+function openWizard(step){ ui.wiz=step||0; renderWiz(); }
+function renderWiz(){
+  if(ui.wiz==null) return;
+  const n=ui.wiz, day=state.tasks.filter(t=>t.list==="day"&&!t.done), doneN=state.tasks.filter(t=>t.list==="day"&&t.done).length;
+  const as=day.filter(t=>t.letter==="A").sort((a,b)=>a.rank-b.rank), f=as[0];
+  let body="";
+  if(n===0) body=`<p>Finished jobs leave the list. Unfinished jobs stay for tomorrow.</p><p><b>${doneN}</b> finished job${doneN===1?"":"s"} on today's list.</p>${doneN?`<button class="btn" data-act="clearDone">Clear ${doneN} finished</button>`:""}`;
+  if(n===1){ const wk=state.tasks.filter(t=>t.list==="week"&&!t.done).slice(0,8);
+    body=`<p>Write everything you must do tomorrow.</p><form class="add" data-form="wizadd"><input id="wiz-in" placeholder="Type a job, tap Add" autocomplete="off" aria-label="New job"><button class="btn primary">Add</button></form>
+    ${day.length?`<p class="small"><b>On tomorrow's list (${day.length}):</b> ${day.map(t=>esc(t.text)).join(" · ")}</p>`:""}
+    ${wk.length?`<p class="small muted">From your week list, tap to add:</p><div class="row">${wk.map(t=>`<button class="btn tiny" data-act="move" data-to="day" data-id="${t.id}">+ ${esc(t.text)}</button>`).join("")}</div>`:""}`; }
+  if(n===2) body=day.length?`<p class="small muted">A must do · B should do · C nice to do · D give away · E throw away</p>${day.map(t=>`<div class="wrow"><span class="wt">${esc(t.text)}</span><div class="minil">${["A","B","C","D","E"].map(l=>`<button data-act="setletter" data-id="${t.id}" data-l="${l}" aria-pressed="${t.letter===l}" aria-label="${l}: ${LMEAN[l][0]}">${l}</button>`).join("")}</div></div>`).join("")}`:`<p>No jobs yet. Go back one step and add some.</p>`;
+  if(n===3) body=as.length?`<p>Put the most important A job on top. Ask: which one has the biggest result if I do it, or the biggest trouble if I don't? <b>The top one is your frog.</b></p>${as.map((t,i)=>`<div class="wrow"><span class="wt">${i===0?"🐸 ":""}A-${i+1} · ${esc(t.text)}</span>${as.length>1?`<div class="row"><button class="btn tiny" data-act="up" data-id="${t.id}" ${i===0?"disabled":""}>Move up</button><button class="btn tiny" data-act="down" data-id="${t.id}" ${i===as.length-1?"disabled":""}>Move down</button></div>`:""}</div>`).join("")}`:`<p><b>No A job yet.</b> Go back and give your most important job the letter A. Every day needs one frog.</p>`;
+  if(n===4) body=f?`<p>Your frog: <b>${esc(f.text)}</b></p><form class="panel" data-form="wizneed"><label class="f">What do I need ready for it?<input class="in" id="wiz-need" value="${esc(f.need)}" placeholder="Laptop, notes, water…"></label><button class="btn">Save</button></form><p class="small">Now really lay those things out and clear your desk, so you can start the moment you sit down. (Rule 8)</p>`:`<p>Pick a frog first (step 3).</p>`;
+  if(n===5) body=`<p>Your plan is ready${f?`. Tomorrow's frog: <b>${esc(f.text)}</b>`:""}.</p><p>Go to bed early. Your mind works on the plan while you sleep. In the morning, open the app and tap <b>Start eating</b>.</p>`;
+  layer.innerHTML=`<div class="overlay"><div class="box" role="dialog" aria-label="Plan tomorrow">
+    <span class="src">Plan tomorrow · step ${n+1} of ${WIZ.length}</span><h2>${WIZ[n]}</h2>${body}
+    <div class="dots">${WIZ.map((_,i)=>`<i class="${i===n?"on":""}"></i>`).join("")}</div>
+    <div class="row">${n?`<button class="btn ghost" data-act="wiz" data-step="${n-1}">Back</button>`:`<button class="btn ghost" data-act="wizclose">Close</button>`}
+    ${n<WIZ.length-1?`<button class="btn primary" data-act="wiz" data-step="${n+1}">Next</button>`:`<button class="btn primary" data-act="wizfinish">Done, good night</button>`}</div></div></div>`;
+  if(n===1){ const i=document.getElementById("wiz-in"); if(i&&ui.wizFocus){ i.focus(); ui.wizFocus=false; } }
+}
+
 // ================= RENDER: shared rows =================
 function taskRow(t){
   const open=ui.open===t.id; const sl=t.slices||[]; const slDone=sl.filter(s=>s.done).length;
@@ -456,6 +544,7 @@ function viewToday(){
   <header class="top"><div class="who"><h1>Frog Pond</h1><p class="small muted">${d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})}</p></div>
     <button class="talk" data-act="talk" aria-label="Say it to yourself, tap for another">${TALK[ui.talk%TALK.length]}</button><button id="sync" class="sync" data-act="gosync" style="border:none"></button></header>
   ${banner}
+  ${nextCard()}
   ${frogHtml}
 
   <section class="card">
@@ -486,6 +575,7 @@ function viewToday(){
 
   <details class="card" ${hour>=17?"open":""}>
     <summary>Tonight: plan tomorrow</summary>
+    <div class="row"><button class="btn primary" data-act="wizard">Plan step by step (easy)</button></div>
     <p class="small muted">Do this at the end of each day. 10 minutes of planning saves about 2 hours tomorrow. <span class="src">Rules 2, 8, 17</span></p>
     <div class="habits">${PLAN_STEPS.map(([k,label,act],i)=>{const done=(state.plan[today]||{})[k];return `<div class="habit"><button class="check ${done?"on":""}" aria-label="Step ${i+1} done" data-act="planstep" data-k="${k}"></button><span>${i+1}. ${label}${act==="clear"?` <button class="btn tiny" data-act="clearDone">Clear finished jobs</button>`:""}</span></div>`}).join("")}</div>
     ${f?`<form class="row" data-form="need" data-id="${f.id}"><label class="f" style="flex:1;min-width:200px">What I need ready for my frog<input class="in" id="need-today" value="${esc(f.need)}" placeholder="Laptop, notes, water…"></label><button class="btn">Save</button></form>`:""}
@@ -503,6 +593,7 @@ function viewToday(){
     </ul>
     <div class="row"><button class="btn sun" data-act="focus" data-id="${f?f.id:""}">Do it now: start a timer</button></div>
   </details>
+  ${help("How to use Today",["Look at the yellow <b>Do this now</b> box. It always shows your next step.","Morning: tap <b>Start eating</b> and do your frog first. Then tap <b>I ate my frog!</b>","New job? Type it in Today's list, then tap the letter box to choose A, B, C, D or E.","Tap the circle when a job is done. Tap ⋯ for more: slice it, deadline, move it, delete.","Evening: tap <b>Start planning</b> and follow the 6 steps."])}
   ${hasEx?`<div class="row"><button class="btn ghost tiny" data-act="clearex">Remove the example jobs and goals</button><span class="small muted">Items marked "example" only show how it works.</span></div>`:""}
   `;
 }
@@ -512,6 +603,7 @@ function viewLists(){
   const L=LISTS.find(l=>l.id===ui.list)||LISTS[3]; const items=sorted(L.id);
   return `
   <h1>Your lists</h1>
+  ${help("How to use Lists",["<b>Big list</b>: any idea, any time. Empty your head here.","Weekend: move jobs from the Big list or Month to <b>Week</b> (tap ⋯ → To week list).","Each evening: move jobs from Week to <b>Today</b>.","Decided not to do something? ⋯ → <b>Not doing</b>. Saying no is a skill."])}
   <div class="flow"><b>Big list</b> → <b>Month</b> → <b>Week</b> → <b>Today</b> <span>Always work from a list. When something new comes up, add it before you do it. <span class="src">Rule 2</span></span></div>
   <div class="seg" role="tablist">${LISTS.map(l=>`<button role="tab" aria-selected="${l.id===L.id}" data-act="list" data-to="${l.id}">${l.name} <span class="muted">${state.tasks.filter(t=>t.list===l.id&&!t.done).length}</span></button>`).join("")}</div>
   <section class="card">
@@ -552,6 +644,7 @@ function viewGoals(){
   const goals=[...state.goals].sort((a,b)=>(b.major?1:0)-(a.major?1:0));
   return `
   <h1>Goals</h1>
+  ${help("How to use Goals",["Write up to 10 goals as if they are already true: \"I earn…\", \"I work as…\".","Tap ★ on the ONE goal that would change your life the most.","Add its steps in order. The next step shows <b>next oil barrel</b>.","Tap <b>To today</b> on a step to make it a job for today. Do one step every day."])}
   <section class="card">
     <div class="section-head"><h2>My 10 goals for next year</h2><span class="src">Rule 1</span></div>
     <p class="small muted">Write each goal as if a year has passed and it is already true: "I earn…", "I weigh…", "I drive…". Then tap ★ on the ONE goal that would change your life the most.</p>
@@ -572,6 +665,7 @@ function viewMe(){
   const qa=(group)=>QUESTIONS[group].map(([k,q])=>`<label class="f">${q}<textarea class="in" id="q-${group}-${k}" data-ans="${group}.${k}" rows="2">${esc(ans[group+"."+k]||"")}</textarea></label>`).join("");
   return `
   <h1>Me</h1>
+  ${help("How to use Me",["<b>Sync</b>: sign in with the same email on your phone and laptop.","<b>Key result areas</b>: the 5 to 7 things your job needs. Score each 1 to 10 once a month; work on the lowest.","Answer the energy and talent questions once. Read them again when you feel stuck.","<b>Settings</b>: free AI key, backup file, replay the welcome tour."])}
   ${accountCard()}
   <section class="card">
     <div class="section-head"><h2>Key result areas</h2><span class="src">Rule 6</span></div>
@@ -603,6 +697,8 @@ function viewMe(){
     <label class="f">Gemini API key<input class="in" type="password" id="gkey" value="${esc(cfg.key)}" autocomplete="off" spellcheck="false" placeholder="Paste your key"></label>
     <label class="f">Model (leave as is)<input class="in" id="gmodel" value="${esc(cfg.model)}" spellcheck="false"></label>
     <div class="row"><button class="btn primary" data-act="savekey">Save key</button><button class="btn" data-act="testkey">Test it</button>${cfg.key?'<button class="btn ghost tiny" data-act="delkey">Remove key</button>':""}<span class="small muted">${ai?"AI is on":"AI is off"}</span></div>
+    <h3>Help</h3>
+    <div class="row"><button class="btn" data-act="tour">Show the welcome tour again</button></div>
     <h3>Use it on phone and laptop</h3>
     <p class="small muted">Your plan saves on this device only, so it is free and private. To move it: tap "Save backup file", send the file to your other device (AirDrop, email or iCloud Drive), open the app there and tap "Load backup file".</p>
     <div class="row"><button class="btn" data-act="export">Save backup file</button><label class="btn" for="importf" style="display:inline-flex;align-items:center;cursor:pointer">Load backup file</label><input type="file" id="importf" accept="application/json,.json" hidden></div>
@@ -614,6 +710,7 @@ function viewMe(){
 function viewRules(){
   const doy=Math.floor((Date.now()-new Date(new Date().getFullYear(),0,0))/864e5); const i=doy%21; const r=RULES[i];
   return `
+  ${help("How to use 21 Rules",["Every morning read the yellow <b>Rule of the day</b> (30 seconds) and do its <b>Do it now</b> part.","Each card below is one chapter of the book in simple words.","Tap <b>Use it in the app</b> to jump to the place where you use that rule.","In 21 days you will have gone through the whole book once."])}
   <div class="rule-today"><span class="k">Rule of the day · ${i+1} of 21</span><h2>${r[0]}</h2><p>${r[1]}</p><p><b>Do it now:</b> ${r[2]}</p></div>
   <h2>All 21 ways to stop putting things off</h2>
   <div class="rules">${RULES.map((x,n)=>`<div class="rule"><span class="num">Rule ${n+1}</span><h3>${x[0]}</h3><p>${x[1]}</p><p class="do"><b>Do it now:</b> ${x[2]}</p><button class="btn tiny ghost" data-act="gotab" data-to="${x[3]}">Use it in the app</button></div>`).join("")}</div>
@@ -632,11 +729,12 @@ function render(){
   if(active){const el=document.getElementById(active); if(el&&(el.tagName==="INPUT"||el.tagName==="TEXTAREA")&&el.type!=="range"&&!el.disabled) el.focus({preventScroll:true}); if(typing&&el.value!==typing.v&&!keepCleared){ el.value=typing.v; try{el.setSelectionRange(typing.s,typing.e)}catch(x){} } }
   keepCleared=false;
   window.scrollTo(0,y);
+  if(ui.wiz!=null) renderWiz();
 }
 
 // ================= OVERLAYS =================
 const layer=document.getElementById("layer");
-function closeLayer(){layer.innerHTML="";stopTimer();}
+function closeLayer(){layer.innerHTML="";stopTimer();ui.wiz=null;}
 function party(){
   layer.innerHTML=`<div class="overlay" data-close="1"><div class="box center" role="dialog" aria-label="Frog eaten"><svg class="frogsvg" aria-hidden="true"><use href="#frogfull"/></svg><h2>Yum! Frog eaten!</h2><p class="muted">The hardest job is done. That is probably the worst thing that will happen to you all day.</p><p><b>${streak()}</b> day${streak()===1?"":"s"} in a row · ${Math.max(0,21-streak())} to go for the 21-day habit</p><button class="btn primary" data-close="1" id="party-ok">Yay!</button></div></div>`;
   document.getElementById("party-ok").focus();
@@ -724,6 +822,10 @@ function eatFrog(t){ if(!state.frogLog[dkey()]){ state.frogLog[dkey()]=t.id; ret
 document.addEventListener("click",e=>{
   if(e.target.closest("[data-close]")&&!e.target.closest("[data-act]")){ if(e.target.dataset.close||e.target.closest("button[data-close]")) { closeLayer(); return; } }
   const go=e.target.closest("[data-go]"); if(go){startTimer(+go.dataset.go);return}
+  const pk=e.target.closest("[data-pick]"); if(pk){ const t=byId(pk.dataset.id); if(t){ const l=pk.dataset.pick; setLetter(t,l); closeLayer(); commit();
+      toast(l==="A"?(t===a1()?"A-1: this is your frog! 🐸":"A job. Order your A jobs with ⋯ → Move up."):l==="D"?"D: hand it to someone else if you can.":l==="E"?"E: delete it, or ⋯ → Not doing.":l?"Letter "+l+" set.":"Letter removed."); } return; }
+  const tr=e.target.closest("[data-tour]"); if(tr){ openTour(+tr.dataset.tour); return; }
+  if(e.target.closest("[data-tourdone]")){ cfg.toured=true; saveCfg(); closeLayer(); return; }
   if(e.target.id==="backbtn"){const c=document.getElementById("cheer");if(c)c.innerHTML="<b>Back to work! Back to work!</b> Pick up exactly where you stopped.";return}
   const nb=e.target.closest("nav.tabs button"); if(nb){ui.tab=nb.dataset.tab;ui.open=null;ui.panel=null;saveUI();render();window.scrollTo(0,0);return}
   const b=e.target.closest("[data-act]"); if(!b||!state) return;
@@ -738,9 +840,14 @@ document.addEventListener("click",e=>{
       if(t.done&&wasA1&&eatFrog(t)){ commit(); party(); return; }
       if(!t.done&&state.frogLog[dkey()]===t.id){ state.frogLog[dkey()]=""; t.letter="A"; t.rank=0.5; }
       break; }
-    case "letter": { if(!t) return; const nl=LETTERS[(LETTERS.indexOf(t.letter||"")+1)%LETTERS.length]; setLetter(t,nl);
-      if(nl==="D") toast("D: give this to someone else if you can."); else if(nl==="E") toast("E: throw it away. Delete it, or put it on the Not doing list.");
-      break; }
+    case "letter": if(!t) return; openLetterPicker(t.id); return;
+    case "setletter": { if(!t) return; setLetter(t,b.dataset.l); break; }
+    case "wizard": openWizard(0); return;
+    case "wiz": ui.wiz=+b.dataset.step; ui.wizFocus=ui.wiz===1; renderWiz(); return;
+    case "wizclose": closeLayer(); return;
+    case "wizfinish": { const p=state.plan[dkey()]||(state.plan[dkey()]={}); PLAN_STEPS.forEach(([k])=>p[k]=true); todayHabits().plan=true; closeLayer(); commit(); toast("Plan ready. Sleep well! 🐸"); return; }
+    case "tour": openTour(0); return;
+    case "focusadd": { ui.tab="today"; render(); const i=document.getElementById("add-day"); if(i){ i.scrollIntoView({block:"center"}); i.focus(); } return; }
     case "open": ui.open=ui.open===b.dataset.id?null:b.dataset.id; ui.panel=null; render(); return;
     case "panel": ui.panel=ui.panel===b.dataset.p?null:b.dataset.p; render(); { const el=document.getElementById(ui.panel==="slice"?"slice-in":"due-in"); if(el) el.focus(); } return;
     case "up": case "down": { const list=state.tasks.filter(x=>x.list===t.list&&x.letter==="A"&&!x.done).sort((x,y)=>x.rank-y.rank); const i=list.indexOf(t), j=a==="up"?i-1:i+1; if(j<0||j>=list.length) return; const r=list[j].rank; list[j].rank=t.rank; t.rank=r; break; }
@@ -791,6 +898,8 @@ document.addEventListener("submit",e=>{
   const f=e.target; e.preventDefault(); if(!state) return; keepCleared=true;
   const kind=f.dataset.form; const val=(id)=>{const el=document.getElementById(id);return el?el.value:""};
   if(kind==="add"){const i=f.querySelector("input");const v=clip(i.value);if(!v)return;state.tasks.push({id:uidGen(),text:v,list:f.dataset.list,letter:f.dataset.list==="no"?"E":"",rank:0,done:false,created:Date.now(),slices:[],need:"",due:""});i.value="";commit();}
+  else if(kind==="wizadd"){const v=clip(val("wiz-in"));if(!v)return;state.tasks.push({id:uidGen(),text:v,list:"day",letter:"",rank:0,done:false,created:Date.now(),slices:[],need:"",due:""});ui.wizFocus=true;commit();}
+  else if(kind==="wizneed"){const f=a1();if(!f)return;f.need=clip(val("wiz-need"),300);commit();toast("Saved. Lay these out now.");}
   else if(kind==="slice"){const t=byId(f.dataset.id);const v=clip(val("slice-in"));if(!v||!t)return;t.slices.push({id:uidGen(),text:v,done:false});commit();}
   else if(kind==="edit"){const t=byId(f.dataset.id);if(!t)return;t.due=val("due-in");t.need=clip(val("need-in"),300);ui.panel=null;commit();toast("Saved");}
   else if(kind==="need"){const t=byId(f.dataset.id);if(!t)return;t.need=clip(val("need-today"),300);const p=state.plan[dkey()]||(state.plan[dkey()]={});p.ready=true;commit();toast("Saved. Lay these out tonight.");}
@@ -964,6 +1073,7 @@ document.addEventListener("submit",async e=>{
 
 // ================= BOOT =================
 state=loadLocal()||examples(); prevSig=sigOf(state); ai=makeAI(); render();
+if(!cfg.toured) openTour(0);
 loadKey().then(()=>{ if(navigator.onLine) startFirebase(); else setSync("local"); });
 if("serviceWorker" in navigator && location.protocol==="https:"){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
 })();

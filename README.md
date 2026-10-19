@@ -42,6 +42,7 @@ After reading *Eat That Frog!* I saw that the whole book comes down to a few hab
 
 | Area | What you get |
 |---|---|
+| **Easy mode** | A yellow **Do this now** card that always shows the single next step (add jobs → give letters → eat the frog → next job → plan tomorrow), a letter picker that explains A–E, a 6-step **plan-tomorrow wizard**, a welcome tour on first open (replay from Me → Settings) and a "How to use" box on every tab |
 | **Today** | Your frog card (the A-1 task) with "Start eating" and "I ate my frog!", today's list with A/B/C/D/E letters, the 21-day habit tracker, daily habits, an evening "plan tomorrow" checklist and a "feeling stuck?" question box |
 | **Lists** | Big list → Month → Week → Today, plus a "Not doing" list for creative procrastination. Tasks move down the chain with one tap |
 | **Goals** | Up to 10 goals written as if already true, one starred major goal with a finish date, ordered steps, a "next oil barrel" marker and a "what is holding me back?" field |
@@ -105,7 +106,11 @@ I built it in one long session with an AI assistant (Claude), as a series of ste
 - an item-by-item merge so edits from two devices never erase each other,
 - an optional passphrase lock that encrypts the data on the device before upload.
 
-**Step 8: Set up and test on real devices.** The Firebase project was created and configured (sign-in methods, authorized domain, Firestore rules, web app config), the app was added to the iPhone home screen, and sync was turned on.
+**Step 8: Security pass.** Secrets scan of the full history, input cleaning against injected HTML, two sync bugs fixed, least-privilege CI and a console security checklist (section 7).
+
+**Step 9: Easy mode.** After real use showed it was confusing for a first-timer, guidance was added without removing anything: the "Do this now" card, the letter picker, the plan-tomorrow wizard, the welcome tour and per-tab help.
+
+**Step 10: Set up and test on real devices.** The Firebase project was created and configured (sign-in methods, authorized domain, Firestore rules, web app config), the app was added to the iPhone home screen, and sync was turned on.
 
 ## 5. Architecture
 
